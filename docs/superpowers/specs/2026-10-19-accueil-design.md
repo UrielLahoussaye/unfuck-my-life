@@ -129,7 +129,9 @@ rouge sombre de la grande carte, filets fins, flèches cerclées).
   refusée explicitement ; la maquette v2 est la référence.
 - Un réglage à tenir à jour à la main : tout se déduit des dossiers. Uriel ne tient rien à jour
   lui-même. Seule exception, voulue : les accroches, facultatives.
-- Toucher au contenu du vault (aucune écriture).
+- Toucher au contenu du vault (aucune écriture). Seule exception, demandée par Uriel le 19/10 :
+  importer une image de fond depuis l'ordinateur, copiée dans le dossier des pièces jointes
+  d'Obsidian.
 - Une page lente : l'accueil doit s'afficher instantanément au démarrage.
 
 ## Contraintes
