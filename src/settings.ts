@@ -89,7 +89,6 @@ function pickImage(onPick: (file: File) => Promise<void>) {
 	input.addEventListener("change", () => {
 		const file = input.files?.[0];
 		input.remove();
-		console.log("[accueil] image choisie :", file?.name);
 		if (file) onPick(file).then(() => new Notice(`Image importée : ${file.name}`)).catch((e) => new Notice(`Image non importée : ${e.message}`));
 	});
 	input.click();
