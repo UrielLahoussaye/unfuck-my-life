@@ -1,4 +1,4 @@
-import { PluginSettingTab, Setting, TFolder, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, TFolder, type App } from "obsidian";
 import { buildHome, type Settings } from "./model";
 import { toTree } from "./vaultTree";
 import { ImageSuggest } from "./imageSuggest";
@@ -51,13 +51,38 @@ export class AccueilSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 		};
 		for (const { titre, path } of [...home.metiers, ...home.domaines]) {
+			let imageInput: HTMLInputElement;
 			new Setting(containerEl)
 				.setName(titre)
 				.addText((t) => t.setPlaceholder("Accroche").setValue(settings.accroches[path] ?? "").onChange((v) => store(settings.accroches, path, v)))
 				.addText((t) => {
+					imageInput = t.inputEl;
 					t.setPlaceholder("Image de fond").setValue(settings.images[path] ?? "").onChange((v) => store(settings.images, path, v));
 					new ImageSuggest(this.app, t.inputEl, (v) => store(settings.images, path, v));
-				});
+				})
+				.addExtraButton((b) =>
+					b
+						.setIcon("image-plus")
+						.setTooltip("Choisir une image sur l'ordinateur")
+						.onClick(() =>
+							pickImage(async (file) => {
+								const target = await this.app.fileManager.getAvailablePathForAttachment(file.name);
+								await this.app.vault.createBinary(target, await file.arrayBuffer());
+								imageInput.value = target;
+								await store(settings.images, path, target);
+							}),
+						),
+				);
 		}
 	}
+}
+
+/** Ouvre le sélecteur de fichiers du système, limité aux images. */
+function pickImage(onPick: (file: File) => Promise<void>) {
+	const input = createEl("input", { attr: { type: "file", accept: "image/*" } });
+	input.addEventListener("change", () => {
+		const file = input.files?.[0];
+		if (file) onPick(file).catch((e) => new Notice(`Image non importée : ${e.message}`));
+	});
+	input.click();
 }
