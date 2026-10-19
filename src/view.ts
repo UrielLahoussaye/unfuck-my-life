@@ -278,7 +278,7 @@ class AffirmationModal extends Modal {
 
 	onOpen() {
 		this.titleEl.setText("Une affirmation");
-		const area = this.contentEl.createEl("textarea", { cls: "accueil-affirmation", attr: { rows: "4", placeholder: "Ce qui va arriver…" } });
+		const area = this.contentEl.createEl("textarea", { cls: "accueil-affirmation", attr: { rows: "4", placeholder: "C’est déjà arrivé, c’est déjà là. Tu le ressens, tu l’écris : une vérité, une évidence." } });
 		const submit = () => {
 			const text = area.value.trim();
 			if (!text) return;
