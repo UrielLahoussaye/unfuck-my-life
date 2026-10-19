@@ -83,10 +83,14 @@ export class AccueilSettingTab extends PluginSettingTab {
 
 /** Ouvre le sélecteur de fichiers du système, limité aux images. */
 function pickImage(onPick: (file: File) => Promise<void>) {
-	const input = createEl("input", { attr: { type: "file", accept: "image/*" } });
+	// Rattaché au document : un champ fichier détaché n'ouvre pas toujours le sélecteur sous Electron.
+	const input = document.body.createEl("input", { attr: { type: "file", accept: "image/*" } });
+	input.style.display = "none";
 	input.addEventListener("change", () => {
 		const file = input.files?.[0];
-		if (file) onPick(file).catch((e) => new Notice(`Image non importée : ${e.message}`));
+		input.remove();
+		console.log("[accueil] image choisie :", file?.name);
+		if (file) onPick(file).then(() => new Notice(`Image importée : ${file.name}`)).catch((e) => new Notice(`Image non importée : ${e.message}`));
 	});
 	input.click();
 }
