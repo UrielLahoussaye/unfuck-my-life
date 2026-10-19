@@ -93,7 +93,10 @@ export class AccueilView extends ItemView {
 			for (const sp of m.sousProjets) act.createDiv({ cls: "accueil-action-sub", text: `${sp.titre}  —  ${sp.text}` });
 			if (m.sousProjetsEnPlus) act.createDiv({ cls: "accueil-action-sub", text: `+${m.sousProjetsEnPlus} sous-projets` });
 		}
-		card.addEventListener("click", () => this.openPath(`${m.path}/_État.md`, m.path));
+		card.addEventListener("click", () => {
+			this.openPath(`${m.path}/_État.md`);
+			this.reveal(m.path);
+		});
 	}
 
 	private domaines(s: HTMLElement, domaines: Domaine[]) {
@@ -104,7 +107,7 @@ export class AccueilView extends ItemView {
 			top.createSpan({ cls: "accueil-red accueil-caps", text: d.numero });
 			const go = arrow(top);
 			go.addEventListener("click", () => this.reveal(d.path));
-			col.createDiv({ cls: "accueil-domaine-title", text: d.titre });
+			col.createDiv({ cls: "accueil-domaine-title", text: d.titre }).addEventListener("click", () => this.reveal(d.path));
 			if (d.accroche) col.createDiv({ cls: "accueil-accroche", text: d.accroche });
 			col.createDiv("accueil-filet");
 			const pills = col.createDiv("accueil-pills");
@@ -153,10 +156,16 @@ export class AccueilView extends ItemView {
 		else if (fallbackFolder) this.reveal(fallbackFolder);
 	}
 
+	/** Montre le dossier dans l'explorateur de gauche, panneau ouvert et dossier déplié. */
 	private reveal(path: string) {
 		const folder = this.app.vault.getAbstractFileByPath(path);
 		const explorer = (this.app as any).internalPlugins?.getPluginById?.("file-explorer")?.instance;
-		if (folder && explorer?.revealInFolder) explorer.revealInFolder(folder);
+		if (!folder || !explorer?.revealInFolder) return;
+		this.app.workspace.leftSplit.expand();
+		explorer.revealInFolder(folder);
+		// API interne de l'explorateur : sans elle, le dossier est sélectionné mais reste replié.
+		const view = this.app.workspace.getLeavesOfType("file-explorer")[0]?.view as any;
+		view?.fileItems?.[path]?.setCollapsed?.(false);
 	}
 }
 

@@ -158,7 +158,8 @@
 }
 .accueil-domaine .accueil-arrow { width: 28px; height: 28px; cursor: pointer; }
 .accueil-domaine .accueil-arrow:hover { border-color: var(--accueil-red); color: var(--accueil-red); }
-.accueil-domaine-title { margin-top: 28px; font-family: var(--accueil-ui); font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
+.accueil-domaine-title:hover { color: var(--accueil-red); }
+.accueil-domaine-title { cursor: pointer; margin-top: 28px; font-family: var(--accueil-ui); font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
 .accueil-domaine .accueil-accroche { font-size: 14px; margin-top: -6px; }
 .accueil-filet { width: 24px; height: 2px; background: var(--accueil-red); }
 
