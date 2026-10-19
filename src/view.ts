@@ -8,6 +8,8 @@ import type AccueilPlugin from "./main";
 export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
 export class AccueilView extends ItemView {
+	private page: "accueil" | "vision" = "accueil";
+
 	constructor(leaf: WorkspaceLeaf, private plugin: AccueilPlugin) {
 		super(leaf);
 	}
@@ -36,21 +38,41 @@ export class AccueilView extends ItemView {
 		root.empty();
 		root.addClass("accueil");
 
-		this.header(root);
+		this.tabs(root);
+		if (this.page === "vision") {
+			this.header(root, "Ma Vision");
+			await this.vision(root.createDiv("accueil-section"));
+			root.scrollTop = scroll;
+			return;
+		}
+		this.header(root, "Mon Cerveau");
 		let n = 0;
 		if (home.metiers.length) this.metiers(this.section(root, ++n, "Le Métier", "ce qui doit rapporter"), home.metiers);
 		if (home.domaines.length) this.domaines(this.section(root, ++n, "Les Domaines", "le foyer, l’atelier, l’œuvre"), home.domaines);
 		if (home.quotidien) this.quotidien(this.section(root, ++n, "Au quotidien", "les notes de tous les jours"), home.quotidien);
-		await this.vision(this.section(root, ++n, "La Vision", "ce qui va arriver"));
 		root.scrollTop = scroll;
 	}
 
-	private header(root: HTMLElement) {
+	private tabs(root: HTMLElement) {
+		const bar = root.createDiv("accueil-tabs");
+		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"]] as const) {
+			const tab = bar.createDiv({ cls: "accueil-tab accueil-caps", text: label });
+			if (page === this.page) tab.addClass("is-active");
+			tab.addEventListener("click", () => {
+				if (page === this.page) return;
+				this.page = page;
+				this.contentEl.scrollTop = 0;
+				this.render();
+			});
+		}
+	}
+
+	private header(root: HTMLElement, titre: string) {
 		const head = root.createDiv("accueil-head");
 		const left = head.createDiv();
 		const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 		left.createDiv({ cls: "accueil-date", text: date.toLocaleUpperCase("fr") });
-		const title = left.createEl("h1", { cls: "accueil-title", text: "Mon Cerveau" });
+		const title = left.createEl("h1", { cls: "accueil-title", text: titre });
 		title.createSpan({ cls: "accueil-red", text: "." });
 		const search = head.createDiv("accueil-search");
 		search.createSpan({ text: "Où veux-tu aller ?" });
