@@ -30,6 +30,7 @@ export class AccueilView extends ItemView {
 		const settings = this.plugin.settings;
 		const home = buildHome(await toTree(this.app, settings.masques), settings);
 		const root = this.contentEl;
+		const scroll = root.scrollTop;
 		root.empty();
 		root.addClass("accueil");
 
@@ -38,6 +39,7 @@ export class AccueilView extends ItemView {
 		if (home.metiers.length) this.metiers(this.section(root, ++n, "Le Métier", "ce qui doit rapporter"), home.metiers);
 		if (home.domaines.length) this.domaines(this.section(root, ++n, "Les Domaines", "le foyer, l’atelier, l’œuvre"), home.domaines);
 		if (home.quotidien) this.quotidien(this.section(root, ++n, "Au quotidien", "les notes de tous les jours"), home.quotidien);
+		root.scrollTop = scroll;
 	}
 
 	private header(root: HTMLElement) {

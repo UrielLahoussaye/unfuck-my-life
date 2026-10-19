@@ -125,8 +125,13 @@ function links(node: Node, hidden: (p: string) => boolean): Link[] {
 /** Les _État.md les plus proches sous ce dossier, sans descendre sous un dossier qui en a un. */
 function nearestEtats(node: Node): Node[] {
 	return (node.children ?? [])
-		.filter((c) => c.kind === "folder")
+		.filter((c) => c.kind === "folder" && !c.name.startsWith("_"))
 		.flatMap((c) => (c.etat ? [c] : nearestEtats(c)));
+}
+
+/** Seuls les noms et les _État.md nourrissent l'accueil : une note modifiée ne le change pas. */
+export function shouldRefresh(evt: "create" | "modify" | "delete" | "rename", path: string): boolean {
+	return evt !== "modify" || path.endsWith("/_État.md") || path === "_État.md";
 }
 
 function numberedChildren(node: Node): { num: number; rest: string; node: Node }[] {

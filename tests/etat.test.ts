@@ -36,3 +36,10 @@ describe("extractNextAction", () => {
 		expect(extractNextAction("## Prochaine action\r\n\r\n**Définir le catalogue**\r\n")).toEqual({ text: "Définir le catalogue", more: 0 });
 	});
 });
+
+describe("extractNextAction — titre de section", () => {
+	it("accepte une capitale et un suffixe après le titre", () => {
+		expect(extractNextAction("## Prochaine Action\n**Ça**")).toEqual({ text: "Ça", more: 0 });
+		expect(extractNextAction("## Prochaine action ⏭\n**Ça**")).toEqual({ text: "Ça", more: 0 });
+	});
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHome, splitEmoji, type Node, type Settings } from "../src/model";
+import { buildHome, shouldRefresh, splitEmoji, type Node, type Settings } from "../src/model";
 
 // Arbres fictifs : aucun test ne lit le vault.
 const note = (path: string): Node => ({ name: path.split("/").pop()!.replace(/\.(md|canvas)$/, ""), path, kind: path.endsWith(".canvas") ? "canvas" : "note" });
@@ -131,5 +131,21 @@ describe("splitEmoji", () => {
 	});
 	it("laisse un nom sans emoji de tête intact", () => {
 		expect(splitEmoji("Sites utiles 🔗")).toEqual({ label: "Sites utiles 🔗" });
+	});
+});
+
+describe("buildHome — sous-projets archivés", () => {
+	it("ignore les dossiers qui commencent par _", () => {
+		const root = dir("", [dir("1. LE MÉTIER", [dir("1. LE MÉTIER/1. P", [dir("1. LE MÉTIER/1. P/_archives", [dir("1. LE MÉTIER/1. P/_archives/Vieux", [], etat("**Mort**"))])])])]);
+		expect(buildHome(root, NONE).metiers[0].sousProjets).toEqual([]);
+	});
+});
+
+describe("shouldRefresh", () => {
+	it("ne recalcule sur modification que pour un _État.md", () => {
+		expect(shouldRefresh("modify", "a/Note.md")).toBe(false);
+		expect(shouldRefresh("modify", "a/_État.md")).toBe(true);
+		expect(shouldRefresh("rename", "a/Note.md")).toBe(true);
+		expect(shouldRefresh("create", "a/Note.md")).toBe(true);
 	});
 });

@@ -9,7 +9,7 @@ const BOLD_START = /^(?:[-*]\s+)?\*\*(.+?)\*\*/;
 /** Lit la section « ## Prochaine action » d'un _État.md et en tire une ligne d'affichage. */
 export function extractNextAction(markdown: string): NextAction | null {
 	const lines = markdown.split(/\r?\n/);
-	const start = lines.findIndex((l) => /^##\s+Prochaine action\s*$/.test(l.trim()));
+	const start = lines.findIndex((l) => /^##\s+Prochaine action\b/i.test(l.trim()));
 	if (start < 0) return null;
 	const section: string[] = [];
 	for (const line of lines.slice(start + 1)) {

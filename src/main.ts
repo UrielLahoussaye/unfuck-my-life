@@ -1,5 +1,5 @@
 import { Plugin, debounce } from "obsidian";
-import type { Settings } from "./model";
+import { shouldRefresh, type Settings } from "./model";
 import { AccueilSettingTab, DEFAULT_SETTINGS } from "./settings";
 import { AccueilView, VIEW_TYPE_ACCUEIL } from "./view";
 
@@ -15,11 +15,12 @@ export default class AccueilPlugin extends Plugin {
 		this.addCommand({ id: "ouvrir-accueil", name: "Ouvrir l'accueil", callback: () => this.activateView() });
 
 		const refresh = debounce(() => this.refresh(), 300, true);
-		for (const evt of ["create", "modify", "delete", "rename"] as const) {
-			this.registerEvent(this.app.vault.on(evt as "create", refresh));
-		}
-
-		this.app.workspace.onLayoutReady(() => this.activateView());
+		this.app.workspace.onLayoutReady(() => {
+			for (const evt of ["create", "modify", "delete", "rename"] as const) {
+				this.registerEvent(this.app.vault.on(evt as "create", (f) => shouldRefresh(evt, f.path) && refresh()));
+			}
+			this.activateView();
+		});
 	}
 
 	/** Ouvre l'accueil, ou ramène l'onglet existant : jamais deux. */
