@@ -1,5 +1,7 @@
 /* Accueil — d'après la maquette Figma « Accueil v2 » (NQs5DPaRjTEJhtu5cmJsX1, node 6:71). */
 
+@import url("https://fonts.googleapis.com/css2?family=Aboreto&display=swap");
+
 .accueil {
 	--accueil-red: #bd4747;
 	--accueil-bg: var(--background-primary);
@@ -8,7 +10,8 @@
 	--accueil-ink: var(--text-normal);
 	--accueil-muted: var(--text-muted);
 	--accueil-ui: "Alata", var(--font-interface);
-	--accueil-text: "Amethysta", var(--font-text);
+	--accueil-text: var(--font-text);
+	--accueil-titre: "Aboreto", var(--accueil-ui);
 
 	container-type: inline-size;
 	position: relative;
@@ -43,7 +46,7 @@
 .accueil-date { font-family: var(--accueil-ui); font-size: 12px; letter-spacing: 0.24em; color: var(--accueil-muted); }
 .accueil .accueil-title {
 	margin: 0;
-	font-family: var(--accueil-ui);
+	font-family: var(--accueil-titre);
 	font-size: clamp(56px, 9cqi, 128px);
 	font-weight: 400;
 	line-height: 1;
@@ -123,7 +126,7 @@
 }
 .accueil-arrow svg { width: 16px; height: 16px; }
 .accueil-grow { flex: 1; }
-.accueil-card-title { font-family: var(--accueil-ui); font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
+.accueil-card-title { font-family: var(--accueil-titre); font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
 .is-big .accueil-card-title { font-size: 64px; }
 .accueil-accroche { font-size: 15px; line-height: 1.5; color: var(--accueil-muted); }
 .accueil-action { padding-top: 14px; font-size: 14px; line-height: 1.7; }
@@ -159,7 +162,7 @@
 .accueil-domaine .accueil-arrow { width: 28px; height: 28px; cursor: pointer; }
 .accueil-domaine .accueil-arrow:hover { border-color: var(--accueil-red); color: var(--accueil-red); }
 .accueil-domaine-title:hover { color: var(--accueil-red); }
-.accueil-domaine-title { cursor: pointer; margin-top: 28px; font-family: var(--accueil-ui); font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
+.accueil-domaine-title { cursor: pointer; margin-top: 28px; font-family: var(--accueil-titre); font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
 .accueil-domaine .accueil-accroche { font-size: 14px; margin-top: -6px; }
 .accueil-filet { width: 24px; height: 2px; background: var(--accueil-red); }
 
