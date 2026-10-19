@@ -16,7 +16,7 @@ export default class AccueilPlugin extends Plugin {
 		const refresh = debounce(() => this.refresh(), 300, true);
 		this.app.workspace.onLayoutReady(() => {
 			for (const evt of ["create", "modify", "delete", "rename"] as const) {
-				this.registerEvent(this.app.vault.on(evt as "create", (f) => shouldRefresh(evt, f.path) && refresh()));
+				this.registerEvent(this.app.vault.on(evt as "create", (f) => shouldRefresh(evt, f.path, this.settings.vision) && refresh()));
 			}
 			this.activateView();
 		});

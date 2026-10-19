@@ -19,6 +19,8 @@ export interface Settings {
 	quotidien: string | null;
 	/** Dossiers jamais affichés, avec tout ce qu'ils contiennent. */
 	masques: string[];
+	/** Canvas du tableau de vision. */
+	vision?: string;
 }
 
 export interface Link {
@@ -137,8 +139,8 @@ function nearestEtats(node: Node): Node[] {
 }
 
 /** Seuls les noms et les _État.md nourrissent l'accueil : une note modifiée ne le change pas. */
-export function shouldRefresh(evt: "create" | "modify" | "delete" | "rename", path: string): boolean {
-	return evt !== "modify" || path.endsWith("/_État.md") || path === "_État.md";
+export function shouldRefresh(evt: "create" | "modify" | "delete" | "rename", path: string, vision?: string): boolean {
+	return evt !== "modify" || path.endsWith("/_État.md") || path === "_État.md" || path === vision;
 }
 
 function numberedChildren(node: Node): { num: number; rest: string; node: Node }[] {

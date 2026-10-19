@@ -1,5 +1,7 @@
-import { ItemView, TFile, TFolder, setIcon, type WorkspaceLeaf } from "obsidian";
+import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Quotidien } from "./model";
+import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
+import { addToCanvas, parseVision, type VisionItem } from "./vision";
 import { toTree } from "./vaultTree";
 import type AccueilPlugin from "./main";
 
@@ -39,6 +41,7 @@ export class AccueilView extends ItemView {
 		if (home.metiers.length) this.metiers(this.section(root, ++n, "Le Métier", "ce qui doit rapporter"), home.metiers);
 		if (home.domaines.length) this.domaines(this.section(root, ++n, "Les Domaines", "le foyer, l’atelier, l’œuvre"), home.domaines);
 		if (home.quotidien) this.quotidien(this.section(root, ++n, "Au quotidien", "les notes de tous les jours"), home.quotidien);
+		await this.vision(this.section(root, ++n, "La Vision", "ce qui va arriver"));
 		root.scrollTop = scroll;
 	}
 
@@ -134,6 +137,66 @@ export class AccueilView extends ItemView {
 		}
 	}
 
+	private visionPath(): string {
+		return this.plugin.settings.vision || DEFAULT_SETTINGS.vision!;
+	}
+
+	/** Le mur : images et affirmations du canvas, en colonnes ; un clic ouvre le canvas. */
+	private async vision(s: HTMLElement) {
+		const path = this.visionPath();
+		const file = this.app.vault.getAbstractFileByPath(path);
+		let items: VisionItem[] = [];
+		let broken = false;
+		if (file instanceof TFile) {
+			try {
+				items = parseVision(await this.app.vault.cachedRead(file));
+			} catch {
+				broken = true;
+				s.createDiv({ cls: "accueil-muted accueil-wall-empty", text: `« ${path} » n'est pas un canvas lisible.` });
+			}
+		}
+		const wall = s.createDiv("accueil-wall");
+		for (const item of items) {
+			let el: HTMLElement;
+			if (item.kind === "image") {
+				const img = this.app.vault.getAbstractFileByPath(item.path);
+				if (!(img instanceof TFile)) continue;
+				el = wall.createEl("img", { cls: "accueil-wall-item accueil-wall-image", attr: { src: this.app.vault.getResourcePath(img), alt: "" } });
+			} else {
+				el = wall.createDiv("accueil-wall-item accueil-wall-text");
+				el.createDiv("accueil-filet");
+				el.createDiv({ text: item.text });
+			}
+			el.addEventListener("click", () => this.openPath(path));
+		}
+		if (!wall.childElementCount && !broken) {
+			s.createDiv({ cls: "accueil-muted accueil-wall-empty", text: "Ton tableau est vide : ajoute une image ou une affirmation." });
+		}
+		const bar = s.createDiv("accueil-wall-bar");
+		bar.createDiv({ cls: "accueil-pill", text: "+ Image" }).addEventListener("click", () =>
+			pickImage(async (f) => this.addToVision({ kind: "image", path: await importImage(this.app, f) })),
+		);
+		bar.createDiv({ cls: "accueil-pill", text: "+ Affirmation" }).addEventListener("click", () =>
+			new AffirmationModal(this.app, (text) => this.addToVision({ kind: "text", text })).open(),
+		);
+		if (file instanceof TFile) {
+			const open = bar.createDiv({ cls: "accueil-wall-open accueil-caps", text: "Modifier le tableau" });
+			arrow(open);
+			open.addEventListener("click", () => this.openPath(path));
+		}
+	}
+
+	private async addToVision(item: VisionItem) {
+		const path = this.visionPath();
+		try {
+			const existing = this.app.vault.getAbstractFileByPath(path);
+			const file = existing instanceof TFile ? existing : await this.app.vault.create(path, "");
+			await this.app.vault.process(file, (json) => addToCanvas(json, item));
+		} catch (e) {
+			new Notice(`Rien n'a été ajouté au tableau : ${(e as Error).message}`);
+		}
+	}
+
 	/** Pose l'image de fond, fondue vers la gauche. Renvoie false si l'image n'existe pas. */
 	private background(el: HTMLElement, path?: string): boolean {
 		const file = path ? this.app.vault.getAbstractFileByPath(path) : null;
@@ -183,6 +246,34 @@ function arrow(parent: HTMLElement): HTMLElement {
 	const a = parent.createSpan("accueil-arrow");
 	setIcon(a, "arrow-up-right");
 	return a;
+}
+
+/** Une affirmation à taper ; Ctrl+Entrée valide. */
+class AffirmationModal extends Modal {
+	constructor(app: App, private onSubmit: (text: string) => void) {
+		super(app);
+	}
+
+	onOpen() {
+		this.titleEl.setText("Une affirmation");
+		const area = this.contentEl.createEl("textarea", { cls: "accueil-affirmation", attr: { rows: "4", placeholder: "Ce qui va arriver…" } });
+		const submit = () => {
+			const text = area.value.trim();
+			if (!text) return;
+			this.close();
+			this.onSubmit(text);
+		};
+		area.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submit();
+		});
+		const row = this.contentEl.createDiv("modal-button-container");
+		row.createEl("button", { cls: "mod-cta", text: "Ajouter" }).addEventListener("click", submit);
+		window.setTimeout(() => area.focus(), 0);
+	}
+
+	onClose() {
+		this.contentEl.empty();
+	}
 }
 
 function roman(n: number): string {

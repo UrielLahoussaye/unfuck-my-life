@@ -147,6 +147,8 @@ describe("shouldRefresh", () => {
 		expect(shouldRefresh("modify", "a/_État.md")).toBe(true);
 		expect(shouldRefresh("rename", "a/Note.md")).toBe(true);
 		expect(shouldRefresh("create", "a/Note.md")).toBe(true);
+		expect(shouldRefresh("modify", "Vision.canvas", "Vision.canvas")).toBe(true);
+		expect(shouldRefresh("modify", "Autre.canvas", "Vision.canvas")).toBe(false);
 	});
 });
 

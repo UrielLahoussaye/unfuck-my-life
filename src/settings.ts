@@ -4,7 +4,7 @@ import { toTree } from "./vaultTree";
 import { ImageSuggest } from "./imageSuggest";
 import type AccueilPlugin from "./main";
 
-export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [] };
+export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [], vision: "Vision.canvas" };
 
 export class AccueilSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: AccueilPlugin) {
@@ -41,6 +41,16 @@ export class AccueilSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Tableau de vision")
+			.setDesc("Le canvas qu'affiche « La Vision ». Créé au premier ajout s'il n'existe pas.")
+			.addText((t) =>
+				t.setPlaceholder("Vision.canvas").setValue(settings.vision ?? "").onChange(async (v) => {
+					settings.vision = v.trim() || DEFAULT_SETTINGS.vision;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName("Cartes")
 			.setHeading()
 			.setDesc("Pour chaque projet et domaine : une accroche sous le titre, et une image du vault fondue sur le côté droit. Vide : rien.");
@@ -66,12 +76,7 @@ export class AccueilSettingTab extends PluginSettingTab {
 						.setTooltip("Choisir une image sur l'ordinateur")
 						.onClick(() =>
 							pickImage(async (file) => {
-								const target = await this.app.fileManager.getAvailablePathForAttachment(file.name);
-								const parent = target.includes("/") ? target.slice(0, target.lastIndexOf("/")) : "";
-								if (parent && !this.app.vault.getAbstractFileByPath(parent)) {
-									throw new Error(`le dossier des pièces jointes « ${parent} » n'existe pas (Paramètres → Fichiers et liens)`);
-								}
-								await this.app.vault.createBinary(target, await file.arrayBuffer());
+								const target = await importImage(this.app, file);
 								imageInput.value = target;
 								await store(settings.images, path, target);
 							}),
@@ -81,8 +86,19 @@ export class AccueilSettingTab extends PluginSettingTab {
 	}
 }
 
+/** Copie une image de l'ordinateur dans le dossier des pièces jointes du vault ; renvoie son chemin. */
+export async function importImage(app: App, file: File): Promise<string> {
+	const target = await app.fileManager.getAvailablePathForAttachment(file.name);
+	const parent = target.includes("/") ? target.slice(0, target.lastIndexOf("/")) : "";
+	if (parent && !app.vault.getAbstractFileByPath(parent)) {
+		throw new Error(`le dossier des pièces jointes « ${parent} » n'existe pas (Paramètres → Fichiers et liens)`);
+	}
+	await app.vault.createBinary(target, await file.arrayBuffer());
+	return target;
+}
+
 /** Ouvre le sélecteur de fichiers du système, limité aux images. */
-function pickImage(onPick: (file: File) => Promise<void>) {
+export function pickImage(onPick: (file: File) => Promise<void>) {
 	// Rattaché au document : un champ fichier détaché n'ouvre pas toujours le sélecteur sous Electron.
 	const input = document.body.createEl("input", { attr: { type: "file", accept: "image/*" } });
 	input.style.display = "none";
