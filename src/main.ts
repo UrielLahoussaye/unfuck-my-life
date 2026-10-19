@@ -7,8 +7,7 @@ export default class AccueilPlugin extends Plugin {
 	settings: Settings = structuredClone(DEFAULT_SETTINGS);
 
 	async onload() {
-		this.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(await this.loadData()) };
-		this.addSettingTab(new AccueilSettingTab(this.app, this));
+		this.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(await this.loadData()) };		this.addSettingTab(new AccueilSettingTab(this.app, this));
 
 		this.registerView(VIEW_TYPE_ACCUEIL, (leaf) => new AccueilView(leaf, this));
 		this.addRibbonIcon("home", "Ouvrir l'accueil", () => this.activateView());

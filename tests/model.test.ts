@@ -5,7 +5,7 @@ import { buildHome, shouldRefresh, splitEmoji, type Node, type Settings } from "
 const note = (path: string): Node => ({ name: path.split("/").pop()!.replace(/\.(md|canvas)$/, ""), path, kind: path.endsWith(".canvas") ? "canvas" : "note" });
 const dir = (path: string, children: Node[] = [], etat?: string): Node => ({ name: path.split("/").pop()!, path, kind: "folder", children, etat });
 const etat = (action: string) => `---\nzone: x\n---\n# X\n## Prochaine action\n${action}\n## Tranché\n`;
-const NONE: Settings = { accroches: {}, quotidien: null, masques: [] };
+const NONE: Settings = { accroches: {}, images: {}, quotidien: null, masques: [] };
 
 const vault = (): Node =>
 	dir("", [
@@ -147,5 +147,14 @@ describe("shouldRefresh", () => {
 		expect(shouldRefresh("modify", "a/_État.md")).toBe(true);
 		expect(shouldRefresh("rename", "a/Note.md")).toBe(true);
 		expect(shouldRefresh("create", "a/Note.md")).toBe(true);
+	});
+});
+
+describe("buildHome — images de fond", () => {
+	it("lit l'image dans les réglages, pour un métier comme pour un domaine", () => {
+		const home = buildHome(vault(), { ...NONE, images: { "1. LE MÉTIER/1. Runes de Chêne": "img/rdc.jpg", "2. LA HOUSSAYE": "img/maison.png" } });
+		expect(home.metiers[0].image).toBe("img/rdc.jpg");
+		expect(home.metiers[1].image).toBeUndefined();
+		expect(home.domaines[0].image).toBe("img/maison.png");
 	});
 });

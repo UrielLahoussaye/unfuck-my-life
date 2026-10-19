@@ -80,7 +80,7 @@ export class AccueilView extends ItemView {
 
 	private card(parent: HTMLElement, m: Metier, size: string) {
 		const card = parent.createDiv(`accueil-card ${size}`);
-		card.createDiv({ cls: "accueil-watermark", text: m.romain });
+		if (!this.background(card, m.image)) card.createDiv({ cls: "accueil-watermark", text: m.romain });
 		const top = card.createDiv("accueil-card-top");
 		top.createSpan({ cls: "accueil-red accueil-caps", text: m.romain });
 		arrow(top);
@@ -103,6 +103,7 @@ export class AccueilView extends ItemView {
 		const grid = s.createDiv("accueil-domaines");
 		for (const d of domaines) {
 			const col = grid.createDiv("accueil-domaine");
+			this.background(col, d.image);
 			const top = col.createDiv("accueil-card-top");
 			top.createSpan({ cls: "accueil-red accueil-caps", text: d.numero });
 			const go = arrow(top);
@@ -131,6 +132,15 @@ export class AccueilView extends ItemView {
 			tile.createSpan({ text: n.label });
 			tile.addEventListener("click", () => this.openPath(n.path));
 		}
+	}
+
+	/** Pose l'image de fond, fondue vers la gauche. Renvoie false si l'image n'existe pas. */
+	private background(el: HTMLElement, path?: string): boolean {
+		const file = path ? this.app.vault.getAbstractFileByPath(path) : null;
+		if (!(file instanceof TFile)) return false;
+		el.addClass("has-image");
+		el.createDiv("accueil-bg").style.backgroundImage = `url("${this.app.vault.getResourcePath(file)}")`;
+		return true;
 	}
 
 	private pill(parent: HTMLElement, l: Link) {

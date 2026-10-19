@@ -205,6 +205,22 @@
 	color: var(--accueil-ink);
 }
 
+/* Image de fond : à droite, fondue vers la gauche */
+.accueil-domaine { position: relative; overflow: hidden; }
+.accueil-domaine > * { position: relative; }
+.accueil .accueil-bg {
+	position: absolute;
+	inset: 0 0 0 auto;
+	width: 70%;
+	background-size: cover;
+	background-position: center;
+	opacity: 0.55;
+	-webkit-mask-image: linear-gradient(to left, #000 35%, transparent);
+	mask-image: linear-gradient(to left, #000 35%, transparent);
+	pointer-events: none;
+}
+.accueil-domaine .accueil-bg { width: 100%; -webkit-mask-image: linear-gradient(to left, #000 10%, transparent 90%); mask-image: linear-gradient(to left, #000 10%, transparent 90%); opacity: 0.35; }
+
 /* Écran étroit : la grande carte passe au-dessus */
 @container (max-width: 900px) {
 	.accueil-bento { grid-template-columns: 1fr; }

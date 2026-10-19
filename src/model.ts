@@ -13,6 +13,8 @@ export interface Node {
 export interface Settings {
 	/** Accroche par chemin de dossier. */
 	accroches: Record<string, string>;
+	/** Image de fond par chemin de dossier (chemin d'une image du vault). */
+	images: Record<string, string>;
 	/** Dossier dont les notes forment « Au quotidien ». */
 	quotidien: string | null;
 	/** Dossiers jamais affichés, avec tout ce qu'ils contiennent. */
@@ -30,6 +32,7 @@ export interface Metier {
 	romain: string;
 	titre: string;
 	accroche?: string;
+	image?: string;
 	path: string;
 	action?: NextAction;
 	sousProjets: { titre: string; text: string }[];
@@ -40,6 +43,7 @@ export interface Domaine {
 	numero: string;
 	titre: string;
 	accroche?: string;
+	image?: string;
 	path: string;
 	liens: Link[];
 	enPlus: number;
@@ -65,6 +69,7 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 	const hidden = (path: string) =>
 		[...settings.masques, settings.quotidien ?? ""].some((m) => m && (path === m || path.startsWith(m + "/")));
 	const accroche = (path: string) => settings.accroches[path]?.trim() || undefined;
+	const image = (path: string) => settings.images?.[path]?.trim() || undefined;
 	const numbered = numberedChildren(root);
 
 	const metierRoot = numbered.find((n) => n.num === METIER_ROOT);
@@ -82,6 +87,7 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 				romain: roman(num),
 				titre: rest,
 				accroche: accroche(node.path),
+				image: image(node.path),
 				path: node.path,
 				action,
 				sousProjets: subs.slice(0, MAX_SOUS_PROJETS).map((s) => ({ titre: s.titre, text: s.action.text })),
@@ -96,6 +102,7 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 					numero: String(num).padStart(2, "0"),
 					titre: titleCase(rest),
 					accroche: accroche(node.path),
+				image: image(node.path),
 					path: node.path,
 					liens: liens.slice(0, MAX_LIENS),
 					enPlus: Math.max(liens.length - MAX_LIENS, 0),

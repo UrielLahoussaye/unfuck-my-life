@@ -1,9 +1,10 @@
 import { PluginSettingTab, Setting, TFolder, type App } from "obsidian";
 import { buildHome, type Settings } from "./model";
 import { toTree } from "./vaultTree";
+import { ImageSuggest } from "./imageSuggest";
 import type AccueilPlugin from "./main";
 
-export const DEFAULT_SETTINGS: Settings = { accroches: {}, quotidien: null, masques: [] };
+export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [] };
 
 export class AccueilSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: AccueilPlugin) {
@@ -39,16 +40,24 @@ export class AccueilSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		new Setting(containerEl).setName("Accroches").setHeading().setDesc("Une phrase sous le titre. Vide : pas d'accroche.");
+		new Setting(containerEl)
+			.setName("Cartes")
+			.setHeading()
+			.setDesc("Pour chaque projet et domaine : une accroche sous le titre, et une image du vault fondue sur le côté droit. Vide : rien.");
 		const home = buildHome(await toTree(this.app, settings.masques), settings);
+		const store = async (map: Record<string, string>, path: string, v: string) => {
+			if (v.trim()) map[path] = v.trim();
+			else delete map[path];
+			await this.plugin.saveSettings();
+		};
 		for (const { titre, path } of [...home.metiers, ...home.domaines]) {
-			new Setting(containerEl).setName(titre).addText((t) =>
-				t.setValue(settings.accroches[path] ?? "").onChange(async (v) => {
-					if (v.trim()) settings.accroches[path] = v;
-					else delete settings.accroches[path];
-					await this.plugin.saveSettings();
-				}),
-			);
+			new Setting(containerEl)
+				.setName(titre)
+				.addText((t) => t.setPlaceholder("Accroche").setValue(settings.accroches[path] ?? "").onChange((v) => store(settings.accroches, path, v)))
+				.addText((t) => {
+					t.setPlaceholder("Image de fond").setValue(settings.images[path] ?? "").onChange((v) => store(settings.images, path, v));
+					new ImageSuggest(this.app, t.inputEl, (v) => store(settings.images, path, v));
+				});
 		}
 	}
 }
