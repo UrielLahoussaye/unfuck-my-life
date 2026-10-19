@@ -67,6 +67,10 @@ export class AccueilSettingTab extends PluginSettingTab {
 						.onClick(() =>
 							pickImage(async (file) => {
 								const target = await this.app.fileManager.getAvailablePathForAttachment(file.name);
+								const parent = target.includes("/") ? target.slice(0, target.lastIndexOf("/")) : "";
+								if (parent && !this.app.vault.getAbstractFileByPath(parent)) {
+									throw new Error(`le dossier des pièces jointes « ${parent} » n'existe pas (Paramètres → Fichiers et liens)`);
+								}
 								await this.app.vault.createBinary(target, await file.arrayBuffer());
 								imageInput.value = target;
 								await store(settings.images, path, target);
