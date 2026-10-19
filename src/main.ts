@@ -1,13 +1,14 @@
 import { Plugin, debounce } from "obsidian";
 import type { Settings } from "./model";
-import { DEFAULT_SETTINGS } from "./settings";
+import { AccueilSettingTab, DEFAULT_SETTINGS } from "./settings";
 import { AccueilView, VIEW_TYPE_ACCUEIL } from "./view";
 
 export default class AccueilPlugin extends Plugin {
-	settings: Settings = DEFAULT_SETTINGS;
+	settings: Settings = structuredClone(DEFAULT_SETTINGS);
 
 	async onload() {
-		this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
+		this.settings = { ...structuredClone(DEFAULT_SETTINGS), ...(await this.loadData()) };
+		this.addSettingTab(new AccueilSettingTab(this.app, this));
 
 		this.registerView(VIEW_TYPE_ACCUEIL, (leaf) => new AccueilView(leaf, this));
 		this.addRibbonIcon("home", "Ouvrir l'accueil", () => this.activateView());
