@@ -240,7 +240,7 @@
 }
 .accueil-wall-item:hover { outline-color: var(--accueil-red); }
 .accueil-wall-empty { margin-bottom: 16px; }
-.accueil-wall-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.accueil-wall-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 24px; }
 .accueil-wall-open { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 12px; color: var(--accueil-muted); cursor: pointer; }
 .accueil-wall-open:hover { color: var(--accueil-red); }
 .accueil-wall-open .accueil-arrow { width: 24px; height: 24px; }
