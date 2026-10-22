@@ -130,7 +130,26 @@
 .is-big .accueil-card-title { font-size: 64px; }
 .accueil-accroche { font-size: 15px; line-height: 1.5; color: var(--accueil-muted); }
 .accueil-action { padding-top: 14px; font-size: 14px; line-height: 1.7; }
-.accueil-action > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.accueil-tache { display: flex; align-items: center; gap: 4px; }
+.accueil-tache-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.accueil .accueil-tache-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid var(--accueil-muted);
+	border-radius: 50%;
+	background: transparent;
+	box-shadow: none;
+	color: var(--accueil-muted);
+	opacity: 0.45;
+	cursor: pointer;
+}
+.accueil-tache-btn svg { width: 12px; height: 12px; }
+.accueil-tache:hover .accueil-tache-btn { opacity: 1; }
+.accueil .accueil-tache-btn:hover { color: var(--accueil-red); border-color: var(--accueil-red); }
 .accueil-action-main { position: relative; padding-left: 16px; }
 .accueil-action-main::before {
 	content: "";

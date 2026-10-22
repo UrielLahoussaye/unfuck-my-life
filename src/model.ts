@@ -1,4 +1,4 @@
-import { extractNextAction, type NextAction } from "./etat";
+import { extractTasks } from "./etat";
 
 /** Arbre du vault, réduit à ce que l'accueil lit. */
 export interface Node {
@@ -36,9 +36,16 @@ export interface Metier {
 	accroche?: string;
 	image?: string;
 	path: string;
-	action?: NextAction;
-	sousProjets: { titre: string; text: string }[];
+	paquet?: Paquet;
+	sousProjets: (Paquet & { titre: string })[];
 	sousProjetsEnPlus: number;
+}
+
+/** Les tâches non cochées d'un _État.md : la carte n'en montre qu'une. */
+export interface Paquet {
+	/** Chemin du _État.md, où cocher. */
+	etat: string;
+	tasks: string[];
 }
 
 export interface Domaine {
@@ -79,10 +86,11 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 
 	return {
 		metiers: metiers.map(({ num, rest, node }) => {
-			const action = node.etat ? extractNextAction(node.etat) ?? undefined : undefined;
 			const subs = nearestEtats(node)
-				.map((s) => ({ titre: s.name, action: extractNextAction(s.etat!) }))
-				.filter((s): s is { titre: string; action: NextAction } => !!s.action)
+				.flatMap((s) => {
+					const p = paquet(s);
+					return p ? [{ titre: s.name, ...p }] : [];
+				})
 				.sort((a, b) => compare(a.titre, b.titre));
 			return {
 				numero: num,
@@ -91,8 +99,8 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 				accroche: accroche(node.path),
 				image: image(node.path),
 				path: node.path,
-				action,
-				sousProjets: subs.slice(0, MAX_SOUS_PROJETS).map((s) => ({ titre: s.titre, text: s.action.text })),
+				paquet: paquet(node),
+				sousProjets: subs.slice(0, MAX_SOUS_PROJETS),
 				sousProjetsEnPlus: Math.max(subs.length - MAX_SOUS_PROJETS, 0),
 			};
 		}),
@@ -129,6 +137,11 @@ function quotidien(root: Node, settings: Settings, hidden: (p: string) => boolea
 function links(node: Node, hidden: (p: string) => boolean): Link[] {
 	const visible = (node.children ?? []).filter((c) => !c.name.startsWith("_") && !c.name.startsWith(".") && !hidden(c.path));
 	return [...sortLinks(visible.filter((c) => c.kind === "folder")), ...sortLinks(visible.filter((c) => c.kind !== "folder"))].map(toLink);
+}
+
+function paquet(node: Node): Paquet | undefined {
+	const tasks = node.etat ? extractTasks(node.etat) : [];
+	return tasks.length ? { etat: `${node.path}/_État.md`, tasks } : undefined;
 }
 
 /** Les _État.md les plus proches sous ce dossier, sans descendre sous un dossier qui en a un. */

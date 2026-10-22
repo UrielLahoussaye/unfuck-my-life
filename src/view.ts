@@ -1,5 +1,6 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
-import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Quotidien } from "./model";
+import { checkTask, taskLabel } from "./etat";
+import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
 import { addToCanvas, parseVision, type VisionItem } from "./vision";
 import { toTree } from "./vaultTree";
@@ -9,6 +10,8 @@ export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
 export class AccueilView extends ItemView {
 	private page: "accueil" | "vision" = "accueil";
+	/** La tâche tirée au mélange, par _État.md. Valable le jour du tirage : le lendemain, chaque paquet repart de sa priorité. */
+	private tirages = new Map<string, { jour: string; task: string }>();
 
 	constructor(leaf: WorkspaceLeaf, private plugin: AccueilPlugin) {
 		super(leaf);
@@ -112,16 +115,38 @@ export class AccueilView extends ItemView {
 		card.createDiv("accueil-grow");
 		card.createDiv({ cls: "accueil-card-title", text: m.titre });
 		if (m.accroche) card.createDiv({ cls: "accueil-accroche", text: m.accroche });
-		if (m.action || m.sousProjets.length) {
+		if (m.paquet || m.sousProjets.length) {
 			const act = card.createDiv("accueil-action");
-			if (m.action) act.createDiv({ cls: "accueil-action-main", text: m.action.text + (m.action.more ? `  ·  +${m.action.more}` : "") });
-			for (const sp of m.sousProjets) act.createDiv({ cls: "accueil-action-sub", text: `${sp.titre}  —  ${sp.text}` });
+			if (m.paquet) this.tache(act, m.paquet, "accueil-action-main");
+			for (const sp of m.sousProjets) this.tache(act, sp, "accueil-action-sub", `${sp.titre}  —  `);
 			if (m.sousProjetsEnPlus) act.createDiv({ cls: "accueil-action-sub", text: `+${m.sousProjetsEnPlus} sous-projets` });
 		}
 		card.addEventListener("click", () => {
 			this.openPath(`${m.path}/_État.md`);
 			this.reveal(m.path);
 		});
+	}
+
+	/** Une seule tâche du paquet est visible : la priorité, ou celle tirée au mélange aujourd'hui. */
+	private tache(parent: HTMLElement, p: Paquet, cls: string, prefix = "") {
+		const tirage = this.tirages.get(p.etat);
+		const shown = tirage && tirage.jour === today() && p.tasks.includes(tirage.task) ? tirage.task : p.tasks[0];
+		const line = parent.createDiv(`accueil-tache ${cls}`);
+		line.createSpan({ cls: "accueil-tache-text", text: prefix + taskLabel(shown) });
+		if (p.tasks.length > 1) {
+			button(line, "shuffle", "Une autre tâche", () => {
+				const others = p.tasks.filter((t) => t !== shown);
+				this.tirages.set(p.etat, { jour: today(), task: others[Math.floor(Math.random() * others.length)] });
+				this.render();
+			});
+		}
+		// Cocher modifie le _État.md : le vault prévient l'accueil, qui se redessine avec la suivante.
+		button(line, "check", "Fait", () => this.cocher(p.etat, shown));
+	}
+
+	private async cocher(path: string, task: string) {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) await this.app.vault.process(file, (md) => checkTask(md, task));
 	}
 
 	private domaines(s: HTMLElement, domaines: Domaine[]) {
@@ -263,6 +288,18 @@ export class AccueilView extends ItemView {
 		view?.fileItems?.[path]?.setCollapsed?.(false);
 	}
 }
+
+/** Petit bouton rond de la carte : son clic n'ouvre pas la carte. */
+function button(parent: HTMLElement, icon: string, label: string, onClick: () => void) {
+	const b = parent.createEl("button", { cls: "accueil-tache-btn", attr: { "aria-label": label } });
+	setIcon(b, icon);
+	b.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onClick();
+	});
+}
+
+const today = () => new Date().toDateString();
 
 function arrow(parent: HTMLElement): HTMLElement {
 	const a = parent.createSpan("accueil-arrow");

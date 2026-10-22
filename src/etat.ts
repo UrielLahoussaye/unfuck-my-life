@@ -1,29 +1,34 @@
-export interface NextAction {
-	text: string;
-	/** Autres paragraphes de la section qui commencent par du gras. */
-	more: number;
-}
+/** Une case à cocher, au premier niveau de la liste : `- [ ] tâche`. */
+const OPEN_TASK = /^[-*]\s+\[ \]\s+(.+)$/;
+const SECTION = /^##\s+Prochaine action\b/i;
 
-const BOLD_START = /^(?:[-*]\s+)?\*\*(.+?)\*\*/;
-
-/** Lit la section « ## Prochaine action » d'un _État.md et en tire une ligne d'affichage. */
-export function extractNextAction(markdown: string): NextAction | null {
+/** Les tâches non cochées de la section « ## Prochaine action », dans l'ordre : la première est la priorité. */
+export function extractTasks(markdown: string): string[] {
 	const lines = markdown.split(/\r?\n/);
-	const start = lines.findIndex((l) => /^##\s+Prochaine action\b/i.test(l.trim()));
-	if (start < 0) return null;
-	const section: string[] = [];
+	const start = lines.findIndex((l) => SECTION.test(l.trim()));
+	if (start < 0) return [];
+	const tasks: string[] = [];
 	for (const line of lines.slice(start + 1)) {
 		if (/^##\s/.test(line)) break;
-		if (line.trim()) section.push(line.trim());
+		const m = line.trimEnd().match(OPEN_TASK);
+		if (m) tasks.push(m[1].trim());
 	}
-	if (!section.length) return null;
-
-	const bold = section.map((l) => l.match(BOLD_START)?.[1]).filter((b): b is string => !!b);
-	const raw = bold[0] ?? section[0];
-	const text = bold.length ? clean(raw) : raw;
-	return { text, more: Math.max(bold.length - 1, 0) };
+	return tasks;
 }
 
-function clean(s: string): string {
-	return s.split(/[(:]/)[0].trim().replace(/[.,;]+$/, "").trim();
+/** Coche la tâche `task` dans la section « ## Prochaine action ». Rend le texte inchangé si elle n'y est plus. */
+export function checkTask(markdown: string, task: string): string {
+	const lines = markdown.split("\n");
+	const start = lines.findIndex((l) => SECTION.test(l.trim()));
+	if (start < 0) return markdown;
+	for (let i = start + 1; i < lines.length && !/^##\s/.test(lines[i]); i++) {
+		if (lines[i].trimEnd().match(OPEN_TASK)?.[1].trim() === task) {
+			lines[i] = lines[i].replace("[ ]", "[x]");
+			return lines.join("\n");
+		}
+	}
+	return markdown;
 }
+
+/** Ce que la carte affiche d'une tâche : sans le gras du markdown. */
+export const taskLabel = (task: string) => task.replace(/\*\*/g, "");

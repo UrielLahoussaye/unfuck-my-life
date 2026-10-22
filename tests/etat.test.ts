@@ -1,45 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { extractNextAction } from "../src/etat";
+import { checkTask, extractTasks, taskLabel } from "../src/etat";
 
-describe("extractNextAction", () => {
-	it("prend le premier gras de la section, jusqu'au ## suivant", () => {
-		expect(extractNextAction("## Prochaine action\n\n**Définir le catalogue** — quels livres.\n\n## Tranché\n**Autre**"))
-			.toEqual({ text: "Définir le catalogue", more: 0 });
+describe("extractTasks", () => {
+	it("prend les cases non cochées de la section, dans l'ordre, jusqu'au ## suivant", () => {
+		expect(extractTasks("## Prochaine action\n\n- [ ] Définir le catalogue\n- [x] Fait\n* [ ] Brancher TikTok\n\nDétail.\n## Tranché\n- [ ] Autre"))
+			.toEqual(["Définir le catalogue", "Brancher TikTok"]);
 	});
-	it("ignore le frontmatter et ce qui précède", () => {
-		expect(extractNextAction("---\nzone: x\n---\n\n# X\n## Où on en est\n**Pas ça**\n## Prochaine action\n**Ça**"))
-			.toEqual({ text: "Ça", more: 0 });
+	it("ignore ce qui précède la section, les sous-listes et les puces sans case", () => {
+		expect(extractTasks("---\nzone: x\n---\n## Où on en est\n- [ ] Pas ça\n## Prochaine action\n- **Pas une case**\n\t- [ ] Sous-tâche\n- [ ] Ça"))
+			.toEqual(["Ça"]);
 	});
-	it("coupe avant la première parenthèse ou deux-points", () => {
-		expect(extractNextAction("## Prochaine action\n**Le produit d'abord (08/10, Uriel : « x ») : on ne relance pas**"))
-			.toEqual({ text: "Le produit d'abord", more: 0 });
+	it("accepte une capitale, un suffixe et les fins de ligne Windows", () => {
+		expect(extractTasks("## Prochaine Action ⏭\r\n- [ ] Ça\r\n")).toEqual(["Ça"]);
 	});
-	it("compte les autres paragraphes qui commencent par du gras", () => {
-		expect(extractNextAction("## Prochaine action\n**Avant la bascule de la V2 à la racine, dans cet ordre (19/10)** : 1.\n**Battre** x\n\n**Distribuer.** y\ntexte"))
-			.toEqual({ text: "Avant la bascule de la V2 à la racine, dans cet ordre", more: 2 });
-	});
-	it("accepte les paragraphes en liste", () => {
-		expect(extractNextAction("## Prochaine action\n- **La refonte du Hub (lancée le 12/10)** : le Hub…\n- **J'y suis allé** x"))
-			.toEqual({ text: "La refonte du Hub", more: 1 });
-	});
-	it("sans gras, prend la première ligne non vide", () => {
-		expect(extractNextAction("## Prochaine action\n\nAppeler le notaire.\n")).toEqual({ text: "Appeler le notaire.", more: 0 });
-	});
-	it("retire la ponctuation finale laissée par la coupe", () => {
-		expect(extractNextAction("## Prochaine action\n**Distribuer.** Le produit")).toEqual({ text: "Distribuer", more: 0 });
-	});
-	it("renvoie null sans section ou avec une section vide", () => {
-		expect(extractNextAction("# X\n## Où on en est\nbla")).toBeNull();
-		expect(extractNextAction("## Prochaine action\n\n## Tranché\n")).toBeNull();
-	});
-	it("tolère les fins de ligne Windows", () => {
-		expect(extractNextAction("## Prochaine action\r\n\r\n**Définir le catalogue**\r\n")).toEqual({ text: "Définir le catalogue", more: 0 });
+	it("renvoie une liste vide sans section ou sans case", () => {
+		expect(extractTasks("# X\n## Où on en est\nbla")).toEqual([]);
+		expect(extractTasks("## Prochaine action\n**Ancien format**\n## Tranché\n")).toEqual([]);
 	});
 });
 
-describe("extractNextAction — titre de section", () => {
-	it("accepte une capitale et un suffixe après le titre", () => {
-		expect(extractNextAction("## Prochaine Action\n**Ça**")).toEqual({ text: "Ça", more: 0 });
-		expect(extractNextAction("## Prochaine action ⏭\n**Ça**")).toEqual({ text: "Ça", more: 0 });
+describe("checkTask", () => {
+	const note = "## Où on en est\n- [ ] B\n## Prochaine action\r\n- [ ] A\r\n- [ ] B\r\n## Tranché\n- [ ] B";
+	it("coche la tâche dans la section seulement, sans toucher aux fins de ligne", () => {
+		expect(checkTask(note, "B")).toBe("## Où on en est\n- [ ] B\n## Prochaine action\r\n- [ ] A\r\n- [x] B\r\n## Tranché\n- [ ] B");
 	});
+	it("rend la note inchangée si la tâche n'y est plus", () => {
+		expect(checkTask(note, "Z")).toBe(note);
+	});
+});
+
+describe("taskLabel", () => {
+	it("retire le gras", () => expect(taskLabel("**Finir** l'électrique")).toBe("Finir l'électrique"));
 });

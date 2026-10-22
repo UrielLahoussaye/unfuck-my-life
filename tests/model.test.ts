@@ -14,11 +14,11 @@ const vault = (): Node =>
 		dir("SÉNAQUE 2025"),
 		dir("0. INBOX", [dir("0. INBOX/JOURNAL"), dir("0. INBOX/SOUVENIRS"), note("0. INBOX/💎 Galets blancs.md"), note("0. INBOX/💡Boites à idées.md"), note("0. INBOX/Sites utiles 🔗.md")]),
 		dir("1. LE MÉTIER", [
-			dir("1. LE MÉTIER/2. Fellowship", [note("1. LE MÉTIER/2. Fellowship/Dev.md")], etat("**Avant la bascule (19/10)** : x\n**Battre** y")),
+			dir("1. LE MÉTIER/2. Fellowship", [note("1. LE MÉTIER/2. Fellowship/Dev.md")], etat("- [ ] Avant la bascule\n- [ ] Battre")),
 			dir("1. LE MÉTIER/1. Runes de Chêne", [
-				dir("1. LE MÉTIER/1. Runes de Chêne/Explore", [dir("1. LE MÉTIER/1. Runes de Chêne/Explore/Profond", [], etat("**Trop profond**"))], etat("- **La refonte du Hub (12/10)** : x")),
+				dir("1. LE MÉTIER/1. Runes de Chêne/Explore", [dir("1. LE MÉTIER/1. Runes de Chêne/Explore/Profond", [], etat("- [ ] Trop profond"))], etat("- [ ] La refonte du Hub")),
 				dir("1. LE MÉTIER/1. Runes de Chêne/Images"),
-			], etat("**Le produit d'abord (08/10) : on ne relance pas**")),
+			], etat("- [x] Fait\n- [ ] Le produit d'abord")),
 			dir("1. LE MÉTIER/10. Dixième"),
 			dir("1. LE MÉTIER/Brouillon"),
 		]),
@@ -43,20 +43,20 @@ describe("buildHome — Le Métier", () => {
 			[10, "X", "Dixième"],
 		]);
 	});
-	it("lit la prochaine action et le compte des autres", () => {
+	it("lit le paquet de tâches non cochées et le chemin du _État.md", () => {
 		const [rdc, fel, dix] = buildHome(vault(), NONE).metiers;
-		expect(rdc.action).toEqual({ text: "Le produit d'abord", more: 0 });
-		expect(fel.action).toEqual({ text: "Avant la bascule", more: 1 });
-		expect(dix.action).toBeUndefined();
+		expect(rdc.paquet).toEqual({ etat: "1. LE MÉTIER/1. Runes de Chêne/_État.md", tasks: ["Le produit d'abord"] });
+		expect(fel.paquet?.tasks).toEqual(["Avant la bascule", "Battre"]);
+		expect(dix.paquet).toBeUndefined();
 	});
 	it("ajoute le sous-projet le plus proche, pas plus profond", () => {
 		const [rdc, fel] = buildHome(vault(), NONE).metiers;
-		expect(rdc.sousProjets).toEqual([{ titre: "Explore", text: "La refonte du Hub" }]);
+		expect(rdc.sousProjets).toEqual([{ titre: "Explore", etat: "1. LE MÉTIER/1. Runes de Chêne/Explore/_État.md", tasks: ["La refonte du Hub"] }]);
 		expect(rdc.sousProjetsEnPlus).toBe(0);
 		expect(fel.sousProjets).toEqual([]);
 	});
 	it("garde deux sous-projets au plus, par ordre alphabétique", () => {
-		const subs = ["C", "A", "B"].map((n) => dir(`1. LE MÉTIER/1. P/${n}`, [], etat(`**${n}**`)));
+		const subs = ["C", "A", "B"].map((n) => dir(`1. LE MÉTIER/1. P/${n}`, [], etat(`- [ ] ${n}`)));
 		const root = dir("", [dir("1. LE MÉTIER", [dir("1. LE MÉTIER/1. P", subs)])]);
 		const [p] = buildHome(root, NONE).metiers;
 		expect(p.sousProjets.map((s) => s.titre)).toEqual(["A", "B"]);
@@ -136,7 +136,7 @@ describe("splitEmoji", () => {
 
 describe("buildHome — sous-projets archivés", () => {
 	it("ignore les dossiers qui commencent par _", () => {
-		const root = dir("", [dir("1. LE MÉTIER", [dir("1. LE MÉTIER/1. P", [dir("1. LE MÉTIER/1. P/_archives", [dir("1. LE MÉTIER/1. P/_archives/Vieux", [], etat("**Mort**"))])])])]);
+		const root = dir("", [dir("1. LE MÉTIER", [dir("1. LE MÉTIER/1. P", [dir("1. LE MÉTIER/1. P/_archives", [dir("1. LE MÉTIER/1. P/_archives/Vieux", [], etat("- [ ] Mort"))])])])]);
 		expect(buildHome(root, NONE).metiers[0].sousProjets).toEqual([]);
 	});
 });
