@@ -2,6 +2,7 @@ import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type Worksp
 import { checkTask, taskLabel } from "./etat";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
+import { SouvenirModal } from "./souvenir";
 import { addToCanvas, parseVision, type VisionItem } from "./vision";
 import { toTree } from "./vaultTree";
 import type AccueilPlugin from "./main";
@@ -68,6 +69,9 @@ export class AccueilView extends ItemView {
 				this.render();
 			});
 		}
+		const add = bar.createEl("button", { cls: "accueil-tab-souvenir accueil-caps", text: "Souvenir" });
+		setIcon(add.createSpan({ prepend: true }), "plus");
+		add.addEventListener("click", () => new SouvenirModal(this.app).open());
 	}
 
 	private header(root: HTMLElement, titre: string) {

@@ -232,6 +232,40 @@
 .accueil-tab { padding-bottom: 10px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--accueil-muted); cursor: pointer; }
 .accueil-tab:hover { color: var(--accueil-ink); }
 .accueil-tab.is-active { color: var(--accueil-ink); border-bottom-color: var(--accueil-red); cursor: default; }
+.accueil .accueil-tab-souvenir {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: auto;
+	margin: 0 0 8px auto;
+	padding: 6px 16px;
+	border: 1px solid var(--accueil-muted);
+	border-radius: 999px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--accueil-muted);
+	cursor: pointer;
+}
+.accueil-tab-souvenir svg { width: 14px; height: 14px; }
+.accueil .accueil-tab-souvenir:hover { color: var(--accueil-red); border-color: var(--accueil-red); }
+
+/* La fenêtre Souvenir */
+.accueil-souvenir .modal-content { display: flex; flex-direction: column; gap: 20px; }
+.accueil-souvenir-choix { display: flex; gap: 10px; }
+.accueil-souvenir-titre { width: 100%; }
+.accueil-souvenir-rec { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; }
+.accueil-souvenir .accueil-souvenir-bouton {
+	width: 88px;
+	height: 88px;
+	border-radius: 50%;
+	background: #bd4747;
+	box-shadow: none;
+	cursor: pointer;
+}
+/* Un rond blanc pour lancer, un carré pour arrêter. */
+.accueil-souvenir-bouton::after { content: ""; display: block; margin: auto; width: 30px; height: 30px; border-radius: 50%; background: #eceae6; }
+.accueil-souvenir-bouton.is-recording::after { width: 26px; height: 26px; border-radius: 4px; }
+.accueil-souvenir-temps { font-size: 40px; font-variant-numeric: tabular-nums; }
 
 /* La Vision — le mur */
 .accueil-wall { columns: 4 220px; column-gap: 16px; }
