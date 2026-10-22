@@ -16,6 +16,8 @@ export class AccueilView extends ItemView {
 	private seance?: number | "regles";
 	/** La tâche tirée au mélange, par _État.md. Valable le jour du tirage : le lendemain, chaque paquet repart de sa priorité. */
 	private tirages = new Map<string, { jour: string; task: string }>();
+	/** Ce qui est tapé sur une carte pas encore cochée, par exercice : la page se redessine à chaque coche, la saisie doit survivre. */
+	private saisies = new Map<string, { charge: string; reps: string }>();
 
 	constructor(leaf: WorkspaceLeaf, private plugin: AccueilPlugin) {
 		super(leaf);
@@ -263,6 +265,7 @@ export class AccueilView extends ItemView {
 		const passes = log.filter((l) => l.exercice === e.nom);
 		const fait = passes.filter((l) => l.date === jour).pop();
 		if (fait) {
+			this.saisies.delete(e.nom);
 			text.parentElement!.addClass("is-done");
 			const row = text.createDiv("accueil-exo-fait accueil-caps");
 			setIcon(row.createSpan("accueil-exo-coche"), "check");
@@ -270,9 +273,11 @@ export class AccueilView extends ItemView {
 			return;
 		}
 		const derniere = passes.pop();
+		const saisie = this.saisies.get(e.nom) ?? { charge: derniere?.charge ?? "", reps: "" };
 		const row = text.createDiv("accueil-saisie");
-		const charge = champ(row, "kg", "decimal", derniere?.charge);
-		const reps = champ(row, "reps", "numeric");
+		const charge = champ(row, "kg", "decimal", saisie.charge);
+		const reps = champ(row, "reps", "numeric", saisie.reps);
+		row.addEventListener("input", () => this.saisies.set(e.nom, { charge: charge.value, reps: reps.value }));
 		// Chaque coche s'écrit tout de suite : rien ne se perd si le téléphone ferme Obsidian en pleine séance.
 		button(row, "check", "Noter", () =>
 			this.ecrireLog({ date: jour, seance, exercice: e.nom, charge: charge.value.trim(), reps: reps.value.trim() }),
