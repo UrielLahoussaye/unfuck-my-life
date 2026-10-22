@@ -130,7 +130,7 @@
 .is-big .accueil-card-title { font-size: 64px; }
 .accueil-accroche { font-size: 15px; line-height: 1.5; color: var(--accueil-muted); }
 .accueil-action { padding-top: 14px; font-size: 14px; line-height: 1.7; }
-.accueil-tache { display: flex; align-items: center; gap: 4px; }
+.accueil-tache { display: flex; align-items: center; gap: 14px; }
 .accueil-tache-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .accueil .accueil-tache-btn {
 	display: inline-flex;
