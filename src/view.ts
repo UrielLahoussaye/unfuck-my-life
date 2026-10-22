@@ -209,13 +209,14 @@ export class AccueilView extends ItemView {
 			s.createDiv({ cls: "accueil-muted", text: `« ${PROGRAMME} » est introuvable ou vide.` });
 			return;
 		}
-		const prochaine = prochaineSeance(p.seances, new Date());
+		const log = parseLog(md);
+		const prochaine = prochaineSeance(p.seances, log, new Date());
 		const choix = this.seance ?? prochaine;
 		const bar = s.createDiv("accueil-seances");
 		p.seances.forEach((seance, i) => {
 			const pill = this.seancePill(bar, i, choix);
 			pill.createSpan({ cls: "accueil-red", text: roman(i + 1) });
-			pill.createSpan({ text: [seance.jour?.slice(0, 3), seance.nom].filter(Boolean).join(" · ") });
+			pill.createSpan({ text: seance.nom });
 		});
 		this.seancePill(bar, "regles", choix).createSpan({ text: "Règles" });
 
@@ -226,9 +227,8 @@ export class AccueilView extends ItemView {
 		}
 		const seance = p.seances[choix];
 		if (!seance) return;
-		const quand = [seance.jour, seance.lieu, choix === prochaine && "Prochaine séance"].filter(Boolean).join(" · ");
+		const quand = [seance.lieu, choix === prochaine && "Prochaine séance"].filter(Boolean).join(" · ");
 		bar.createDiv({ cls: "accueil-seance-quand accueil-caps", text: quand });
-		const log = parseLog(md);
 		seance.exercices.forEach((e, i) => this.noter(this.exo(cards, i, e.nom, e.volume, illustration(e.nom)), seance.lettre, e, log));
 	}
 

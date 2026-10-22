@@ -40,11 +40,11 @@ statut: actif
 
 describe("parseProgramme", () => {
 	const p = parseProgramme(note);
-	it("lit chaque séance, son jour, son lieu et ses exercices, sans l'en-tête du tableau", () => {
+	it("lit chaque séance, son lieu et ses exercices, sans l'en-tête du tableau", () => {
 		expect(p.seances).toEqual([
-			{ lettre: "A", nom: "Haut lourd", jour: "lundi", lieu: "salle", exercices: [{ nom: "Développé militaire debout", volume: "4 × 5-6" }, { nom: "Tractions", volume: "4 × 6-8" }] },
-			{ lettre: "B", nom: "Terrain", jour: "mercredi", lieu: "terrain", exercices: [{ nom: "Sprints en côte", volume: "6 × 10-15 s" }] },
-			{ lettre: "C", nom: "Haut volume", jour: "vendredi", lieu: "salle", exercices: [{ nom: "Développé couché", volume: "4 × 6-8" }] },
+			{ lettre: "A", nom: "Haut lourd", lieu: "salle", exercices: [{ nom: "Développé militaire debout", volume: "4 × 5-6" }, { nom: "Tractions", volume: "4 × 6-8" }] },
+			{ lettre: "B", nom: "Terrain", lieu: "terrain", exercices: [{ nom: "Sprints en côte", volume: "6 × 10-15 s" }] },
+			{ lettre: "C", nom: "Haut volume", lieu: "salle", exercices: [{ nom: "Développé couché", volume: "4 × 6-8" }] },
 		]);
 	});
 	it("lit les règles et ignore le Log et les Repères", () => {
@@ -60,14 +60,17 @@ describe("parseProgramme", () => {
 
 describe("prochaineSeance", () => {
 	const { seances } = parseProgramme(note);
-	const jour = (d: string) => new Date(`${d}T12:00:00`);
-	it("prend la séance du jour, sinon la suivante, en bouclant sur la semaine", () => {
-		expect(prochaineSeance(seances, jour("2026-10-19"))).toBe(0); // lundi
-		expect(prochaineSeance(seances, jour("2026-10-22"))).toBe(2); // jeudi → vendredi
-		expect(prochaineSeance(seances, jour("2026-10-24"))).toBe(0); // samedi → lundi
+	const soir = new Date("2026-10-22T20:00:00");
+	const ligne = (date: string, seance: string) => ({ date, seance, exercice: "X", charge: "", reps: "" });
+	it("ouvre la séance qui suit la dernière notée, quel que soit le jour", () => {
+		expect(prochaineSeance(seances, [ligne("15/10/2026", "C"), ligne("20/10/2026", "A")], soir)).toBe(1);
+		expect(prochaineSeance(seances, [ligne("20/10/2026", "C")], soir)).toBe(0); // C → A
 	});
-	it("ouvre sur la première quand aucune séance n'a de jour", () => {
-		expect(prochaineSeance([{ lettre: "A", nom: "X", exercices: [] }], jour("2026-10-22"))).toBe(0);
+	it("reste sur la séance commencée aujourd'hui", () => {
+		expect(prochaineSeance(seances, [ligne("22/10/2026", "A")], soir)).toBe(0);
+	});
+	it("ouvre la première sans Log", () => {
+		expect(prochaineSeance(seances, [], soir)).toBe(0);
 	});
 });
 
