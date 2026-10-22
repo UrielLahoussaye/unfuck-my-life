@@ -149,6 +149,7 @@ describe("shouldRefresh", () => {
 		expect(shouldRefresh("create", "a/Note.md")).toBe(true);
 		expect(shouldRefresh("modify", "Vision.canvas", "Vision.canvas")).toBe(true);
 		expect(shouldRefresh("modify", "Autre.canvas", "Vision.canvas")).toBe(false);
+		expect(shouldRefresh("modify", "0. INBOX/Notes/Santé/💪 Programme Salle.md")).toBe(true);
 	});
 });
 

@@ -1,3 +1,4 @@
+import { PROGRAMME } from "./entrainement";
 import { extractTasks } from "./etat";
 
 /** Arbre du vault, réduit à ce que l'accueil lit. */
@@ -153,7 +154,7 @@ function nearestEtats(node: Node): Node[] {
 
 /** Seuls les noms et les _État.md nourrissent l'accueil : une note modifiée ne le change pas. */
 export function shouldRefresh(evt: "create" | "modify" | "delete" | "rename", path: string, vision?: string): boolean {
-	return evt !== "modify" || path.endsWith("/_État.md") || path === "_État.md" || path === vision;
+	return evt !== "modify" || path.endsWith("/_État.md") || path === "_État.md" || path === vision || path === PROGRAMME;
 }
 
 function numberedChildren(node: Node): { num: number; rest: string; node: Node }[] {

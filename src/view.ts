@@ -1,4 +1,5 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
+import { illustration, parseProgramme, prochaineSeance, PROGRAMME } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
@@ -10,7 +11,9 @@ import type AccueilPlugin from "./main";
 export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
 export class AccueilView extends ItemView {
-	private page: "accueil" | "vision" = "accueil";
+	private page: "accueil" | "vision" | "entrainement" = "accueil";
+	/** La séance choisie dans l'onglet Entraînement ; sans choix, la prochaine. */
+	private seance?: number | "regles";
 	/** La tâche tirée au mélange, par _État.md. Valable le jour du tirage : le lendemain, chaque paquet repart de sa priorité. */
 	private tirages = new Map<string, { jour: string; task: string }>();
 
@@ -49,6 +52,11 @@ export class AccueilView extends ItemView {
 			root.scrollTop = scroll;
 			return;
 		}
+		if (this.page === "entrainement") {
+			await this.entrainement(root);
+			root.scrollTop = scroll;
+			return;
+		}
 		this.header(root, "Mon Cerveau");
 		let n = 0;
 		if (home.metiers.length) this.metiers(this.section(root, ++n, "Le Métier", "ce qui doit rapporter"), home.metiers);
@@ -59,12 +67,13 @@ export class AccueilView extends ItemView {
 
 	private tabs(root: HTMLElement) {
 		const bar = root.createDiv("accueil-tabs");
-		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"]] as const) {
+		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"], ["entrainement", "Entraînement"]] as const) {
 			const tab = bar.createDiv({ cls: "accueil-tab accueil-caps", text: label });
 			if (page === this.page) tab.addClass("is-active");
 			tab.addEventListener("click", () => {
 				if (page === this.page) return;
 				this.page = page;
+				this.seance = undefined;
 				this.contentEl.scrollTop = 0;
 				this.render();
 			});
@@ -74,13 +83,14 @@ export class AccueilView extends ItemView {
 		add.addEventListener("click", () => new SouvenirModal(this.app).open());
 	}
 
-	private header(root: HTMLElement, titre: string) {
+	private header(root: HTMLElement, titre: string, accroche?: string) {
 		const head = root.createDiv("accueil-head");
 		const left = head.createDiv();
 		const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 		left.createDiv({ cls: "accueil-date", text: date.toLocaleUpperCase("fr") });
 		const title = left.createEl("h1", { cls: "accueil-title", text: titre });
 		title.createSpan({ cls: "accueil-red", text: "." });
+		if (accroche) left.createDiv({ cls: "accueil-accroche accueil-head-accroche", text: accroche });
 		const search = head.createDiv("accueil-search");
 		search.createSpan({ text: "Où veux-tu aller ?" });
 		search.createSpan({ cls: "accueil-kbd", text: "Ctrl O" });
@@ -186,6 +196,62 @@ export class AccueilView extends ItemView {
 			tile.createSpan({ text: n.label });
 			tile.addEventListener("click", () => this.openPath(n.path));
 		}
+	}
+
+	/** Le programme de salle : une gélule par séance, une carte par exercice, ou par règle. */
+	private async entrainement(root: HTMLElement) {
+		const file = this.app.vault.getAbstractFileByPath(PROGRAMME);
+		const p = parseProgramme(file instanceof TFile ? await this.app.vault.cachedRead(file) : "");
+		this.header(root, "Entraînement", p.accroche);
+		const s = root.createDiv("accueil-section");
+		if (!p.seances.length && !p.regles.length) {
+			s.createDiv({ cls: "accueil-muted", text: `« ${PROGRAMME} » est introuvable ou vide.` });
+			return;
+		}
+		const prochaine = prochaineSeance(p.seances, new Date());
+		const choix = this.seance ?? prochaine;
+		const bar = s.createDiv("accueil-seances");
+		p.seances.forEach((seance, i) => {
+			const pill = this.seancePill(bar, i, choix);
+			pill.createSpan({ cls: "accueil-red", text: roman(i + 1) });
+			pill.createSpan({ text: [seance.jour?.slice(0, 3), seance.nom].filter(Boolean).join(" · ") });
+		});
+		this.seancePill(bar, "regles", choix).createSpan({ text: "Règles" });
+
+		const cards = s.createDiv("accueil-exos");
+		if (choix === "regles") {
+			p.regles.forEach((r, i) => this.exo(cards, i, r));
+			return;
+		}
+		const seance = p.seances[choix];
+		if (!seance) return;
+		const quand = [seance.jour, seance.lieu, choix === prochaine && "Prochaine séance"].filter(Boolean).join(" · ");
+		bar.createDiv({ cls: "accueil-seance-quand accueil-caps", text: quand });
+		seance.exercices.forEach((e, i) => this.exo(cards, i, e.nom, e.volume, illustration(e.nom)));
+	}
+
+	private seancePill(bar: HTMLElement, seance: number | "regles", choix: number | "regles"): HTMLElement {
+		const pill = bar.createDiv("accueil-pill accueil-caps accueil-seance");
+		if (seance === choix) pill.addClass("is-active");
+		pill.addEventListener("click", () => {
+			this.seance = seance;
+			this.render();
+		});
+		return pill;
+	}
+
+	/** Une carte numérotée ; un exercice porte son illustration (fond uni sans image) et son volume. */
+	private exo(parent: HTMLElement, i: number, nom: string, volume?: string, image?: string) {
+		const card = parent.createDiv("accueil-exo");
+		if (image) {
+			const pic = card.createDiv("accueil-exo-image");
+			const file = this.app.vault.getAbstractFileByPath(image);
+			if (file instanceof TFile) pic.createEl("img", { attr: { src: this.app.vault.getResourcePath(file), alt: "" } });
+		}
+		const text = card.createDiv("accueil-exo-texte");
+		text.createDiv({ cls: "accueil-exo-num accueil-caps", text: String(i + 1).padStart(2, "0") });
+		text.createDiv({ cls: "accueil-exo-nom", text: nom });
+		if (volume) text.createDiv({ cls: "accueil-exo-volume", text: volume });
 	}
 
 	private visionPath(): string {
