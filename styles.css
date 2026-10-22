@@ -129,7 +129,7 @@
 .accueil-card-title { font-family: var(--accueil-titre); font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; }
 .is-big .accueil-card-title { font-size: 64px; }
 .accueil-accroche { font-size: 15px; line-height: 1.5; color: var(--accueil-muted); }
-.accueil-action { padding-top: 14px; font-size: 14px; line-height: 1.7; }
+.accueil-action { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; font-size: 14px; line-height: 1.7; }
 .accueil-tache { display: flex; align-items: center; gap: 14px; }
 .accueil-tache-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .accueil .accueil-tache-btn {
