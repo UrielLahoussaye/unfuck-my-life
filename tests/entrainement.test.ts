@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseProgramme, prochaineSeance } from "../src/entrainement";
+import { addLogRow, enHaut, parseLog, parseProgramme, prochaineSeance, resume } from "../src/entrainement";
 
 const note = `---
 statut: actif
@@ -68,5 +68,50 @@ describe("prochaineSeance", () => {
 	});
 	it("ouvre sur la première quand aucune séance n'a de jour", () => {
 		expect(prochaineSeance([{ lettre: "A", nom: "X", exercices: [] }], jour("2026-10-22"))).toBe(0);
+	});
+});
+
+describe("parseLog", () => {
+	it("lit les lignes du tableau Log, sans en-tête ni séparateur", () => {
+		expect(parseLog(note)).toEqual([{ date: "20/10", seance: "A", exercice: "Tractions", charge: "0", reps: "10" }]);
+	});
+	it("rend une liste vide sans section Log", () => {
+		expect(parseLog("## A — X\n| a | b |\n|---|---|\n| c | d |")).toEqual([]);
+	});
+});
+
+describe("addLogRow", () => {
+	const ligne = { date: "22/10/2026", seance: "C", exercice: "Développé couché", charge: "62,5", reps: "8" };
+	it("ajoute la ligne sous la dernière du tableau, sans toucher au reste", () => {
+		const out = addLogRow(note, ligne);
+		expect(out).toContain("| 20/10 | A | Tractions | 0 | 10 |\n| 22/10/2026 | C | Développé couché | 62,5 | 8 |\n\n## Repères");
+		expect(parseLog(out)).toHaveLength(2);
+	});
+	it("crée l'en-tête si la section est vide, la section si elle manque", () => {
+		expect(parseLog(addLogRow("## Log\n\n## Repères", ligne))).toEqual([ligne]);
+		expect(parseLog(addLogRow("# Programme", ligne))).toEqual([ligne]);
+	});
+	it("neutralise une barre verticale saisie, qui casserait le tableau", () => {
+		expect(parseLog(addLogRow("## Log", { ...ligne, charge: "60|62" }))[0].charge).toBe("60/62");
+	});
+});
+
+describe("enHaut", () => {
+	it("compare les reps au haut de la fourchette", () => {
+		expect(enHaut("4 × 6-8", "8")).toBe(true);
+		expect(enHaut("4 × 6-8", "7")).toBe(false);
+		expect(enHaut("3 × 5", "5")).toBe(true);
+		expect(enHaut("6 × 10-15 s", "15")).toBe(false);
+		expect(enHaut("4 × 6-8", "")).toBe(false);
+	});
+});
+
+describe("resume", () => {
+	it("dit la charge et les reps, ou ce qu'il en reste", () => {
+		const l = { date: "", seance: "", exercice: "", charge: "62,5", reps: "8" };
+		expect(resume(l)).toBe("62,5 kg × 8");
+		expect(resume({ ...l, reps: "" })).toBe("62,5 kg");
+		expect(resume({ ...l, charge: "" })).toBe("8 reps");
+		expect(resume({ ...l, charge: "", reps: "" })).toBe("");
 	});
 });

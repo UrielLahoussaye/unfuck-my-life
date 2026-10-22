@@ -5,5 +5,5 @@
   "minAppVersion": "1.5.0",
   "description": "La page d'accueil du vault Mon Cerveau : métiers, domaines, notes du quotidien.",
   "author": "Uriel",
-  "isDesktopOnly": true
+  "isDesktopOnly": false
 }

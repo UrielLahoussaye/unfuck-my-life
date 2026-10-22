@@ -316,6 +316,38 @@
 .accueil-exo-nom { font-size: 17px; line-height: 1.4; }
 .accueil-exo-volume { font-family: var(--accueil-titre); font-size: 30px; letter-spacing: -0.02em; }
 
+/* Noter à la salle — maquette 71:139 */
+.accueil-saisie { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
+.accueil-champ {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	height: 48px;
+	padding: 0 12px 0 14px;
+	border: 1px solid var(--accueil-line);
+	border-radius: 8px;
+	background: var(--accueil-bg);
+}
+.accueil-champ:focus-within { border-color: var(--accueil-red); }
+.accueil .accueil-champ input { flex: 1; min-width: 0; height: auto; padding: 0; border: none; background: transparent; box-shadow: none; font-size: 19px; }
+.accueil .accueil-champ .accueil-caps { font-size: 11px; color: var(--accueil-muted); }
+.accueil .accueil-saisie .accueil-tache-btn { flex: none; width: 48px; height: 48px; border: 1.5px solid var(--accueil-red); color: var(--accueil-red); opacity: 1; }
+.accueil-saisie .accueil-tache-btn svg { width: 20px; height: 20px; }
+.accueil .accueil-exo-rappel { font-size: 10px; color: var(--accueil-muted); }
+.accueil-exo.is-done { border-color: var(--accueil-red); }
+.accueil-exo.is-done .accueil-exo-image { height: 110px; opacity: 0.45; }
+.accueil .accueil-exo-fait { display: flex; align-items: center; gap: 10px; padding-top: 8px; font-size: 11px; }
+.accueil-exo-coche { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accueil-red); color: #eceae6; }
+.accueil-exo-coche svg { width: 14px; height: 14px; }
+
+/* Téléphone : le titre tient sur la largeur */
+@container (max-width: 500px) {
+	.accueil .accueil-title { font-size: 46px; }
+	.accueil-search { display: none; }
+}
+
 /* Image de fond : à droite, fondue vers la gauche */
 .accueil-domaine { position: relative; overflow: hidden; }
 .accueil-domaine > * { position: relative; }

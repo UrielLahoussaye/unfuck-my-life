@@ -1,5 +1,5 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
-import { illustration, parseProgramme, prochaineSeance, PROGRAMME } from "./entrainement";
+import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
@@ -201,7 +201,8 @@ export class AccueilView extends ItemView {
 	/** Le programme de salle : une gélule par séance, une carte par exercice, ou par règle. */
 	private async entrainement(root: HTMLElement) {
 		const file = this.app.vault.getAbstractFileByPath(PROGRAMME);
-		const p = parseProgramme(file instanceof TFile ? await this.app.vault.cachedRead(file) : "");
+		const md = file instanceof TFile ? await this.app.vault.cachedRead(file) : "";
+		const p = parseProgramme(md);
 		this.header(root, "Entraînement", p.accroche);
 		const s = root.createDiv("accueil-section");
 		if (!p.seances.length && !p.regles.length) {
@@ -227,7 +228,8 @@ export class AccueilView extends ItemView {
 		if (!seance) return;
 		const quand = [seance.jour, seance.lieu, choix === prochaine && "Prochaine séance"].filter(Boolean).join(" · ");
 		bar.createDiv({ cls: "accueil-seance-quand accueil-caps", text: quand });
-		seance.exercices.forEach((e, i) => this.exo(cards, i, e.nom, e.volume, illustration(e.nom)));
+		const log = parseLog(md);
+		seance.exercices.forEach((e, i) => this.noter(this.exo(cards, i, e.nom, e.volume, illustration(e.nom)), seance.lettre, e, log));
 	}
 
 	private seancePill(bar: HTMLElement, seance: number | "regles", choix: number | "regles"): HTMLElement {
@@ -240,8 +242,8 @@ export class AccueilView extends ItemView {
 		return pill;
 	}
 
-	/** Une carte numérotée ; un exercice porte son illustration (fond uni sans image) et son volume. */
-	private exo(parent: HTMLElement, i: number, nom: string, volume?: string, image?: string) {
+	/** Une carte numérotée ; un exercice porte son illustration (fond uni sans image) et son volume. Rend le bloc de texte. */
+	private exo(parent: HTMLElement, i: number, nom: string, volume?: string, image?: string): HTMLElement {
 		const card = parent.createDiv("accueil-exo");
 		if (image) {
 			const pic = card.createDiv("accueil-exo-image");
@@ -252,6 +254,38 @@ export class AccueilView extends ItemView {
 		text.createDiv({ cls: "accueil-exo-num accueil-caps", text: String(i + 1).padStart(2, "0") });
 		text.createDiv({ cls: "accueil-exo-nom", text: nom });
 		if (volume) text.createDiv({ cls: "accueil-exo-volume", text: volume });
+		return text;
+	}
+
+	/** Sous l'exercice : ce qui est noté aujourd'hui, sinon kg et reps à noter, la charge reprise de la dernière fois. */
+	private noter(text: HTMLElement, seance: string, e: Exercice, log: Ligne[]) {
+		const jour = jourLog(new Date());
+		const passes = log.filter((l) => l.exercice === e.nom);
+		const fait = passes.filter((l) => l.date === jour).pop();
+		if (fait) {
+			text.parentElement!.addClass("is-done");
+			const row = text.createDiv("accueil-exo-fait accueil-caps");
+			setIcon(row.createSpan("accueil-exo-coche"), "check");
+			row.createSpan({ text: ["Noté", resume(fait)].filter(Boolean).join(" · ") });
+			return;
+		}
+		const derniere = passes.pop();
+		const row = text.createDiv("accueil-saisie");
+		const charge = champ(row, "kg", "decimal", derniere?.charge);
+		const reps = champ(row, "reps", "numeric");
+		// Chaque coche s'écrit tout de suite : rien ne se perd si le téléphone ferme Obsidian en pleine séance.
+		button(row, "check", "Noter", () =>
+			this.ecrireLog({ date: jour, seance, exercice: e.nom, charge: charge.value.trim(), reps: reps.value.trim() }),
+		);
+		if (derniere) {
+			const plus = enHaut(e.volume, derniere.reps) ? " → +poids" : "";
+			text.createDiv({ cls: "accueil-exo-rappel accueil-caps", text: `La dernière fois : ${resume(derniere)}${plus}` });
+		}
+	}
+
+	private async ecrireLog(ligne: Ligne) {
+		const file = this.app.vault.getAbstractFileByPath(PROGRAMME);
+		if (file instanceof TFile) await this.app.vault.process(file, (md) => addLogRow(md, ligne));
 	}
 
 	private visionPath(): string {
@@ -367,6 +401,14 @@ function button(parent: HTMLElement, icon: string, label: string, onClick: () =>
 		e.stopPropagation();
 		onClick();
 	});
+}
+
+/** Un champ de saisie avec son unité ; le clavier du téléphone suit `mode`. */
+function champ(parent: HTMLElement, unite: string, mode: string, value = ""): HTMLInputElement {
+	const label = parent.createEl("label", "accueil-champ");
+	const input = label.createEl("input", { type: "text", value, attr: { inputmode: mode } });
+	label.createSpan({ cls: "accueil-caps", text: unite });
+	return input;
 }
 
 const today = () => new Date().toDateString();
