@@ -347,8 +347,7 @@ export class AccueilView extends ItemView {
 					this.render();
 				});
 			}
-			const grid = s.createDiv("accueil-objectifs");
-			for (const { p, o } of objectifs) this.objectif(grid, p, o, projets.length > 1 && !this.projet);
+			this.objectifs(s, vus);
 		}
 		const f = fenetre(vus);
 		if (!f) return;
@@ -378,21 +377,69 @@ export class AccueilView extends ItemView {
 	}
 
 	/**
-	 * Une carte d'objectif. Avec une mesure : l'atteint en grand, face au palier du moment, et une barre.
-	 * Sans mesure : le palier seul. L'image du dossier du plan en fond, comme sur l'Accueil. Maquette Figma 97:140.
+	 * Les objectifs, au calme : un bloc par projet (bandeau à l'image du dossier), une ligne par objectif.
+	 * Repliable d'un clic sur « Objectifs » : la section tient alors sur une ligne, un point par objectif.
+	 * Maquette Figma 104:140 (ouverte) et 104:224 (repliée).
 	 */
-	private objectif(grid: HTMLElement, p: Plan, o: Objectif, avecProjet: boolean) {
-		const card = grid.createDiv("accueil-objectif");
-		if (o.fait) card.addClass("is-done");
-		this.background(card, this.plugin.settings.images?.[p.path.split("/").slice(0, -1).join("/")]);
-		card.createDiv("accueil-filet");
-		card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
+	private objectifs(s: HTMLElement, vus: Plan[]) {
+		const settings = this.plugin.settings;
+		const replie = !!settings.objectifsReplies;
+		const head = s.querySelector(".accueil-section-head")!;
+		const titre = head.children[1] as HTMLElement;
+		const chevron = createSpan({ cls: "accueil-objectifs-chevron" });
+		setIcon(chevron, replie ? "chevron-right" : "chevron-down");
+		titre.after(chevron);
+		for (const el of [titre, chevron]) {
+			el.addClass("accueil-cliquable");
+			el.addEventListener("click", async () => {
+				settings.objectifsReplies = !replie;
+				await this.plugin.saveSettings();
+				this.render();
+			});
+		}
+		// Replié, les lignes se calculent quand même (pour les points), hors de la page.
+		const corps = replie ? createDiv() : s.createDiv("accueil-obj-groupes");
+		const etats: ("dessus" | "dessous" | null)[] = [];
+		const mois = new Date().toLocaleDateString("fr-FR", { month: "long" });
+		for (const p of vus) {
+			if (!p.objectifs.length) continue;
+			const groupe = corps.createDiv("accueil-obj-groupe");
+			const bandeau = groupe.createDiv("accueil-obj-bandeau");
+			this.background(bandeau, settings.images?.[p.path.split("/").slice(0, -1).join("/")]);
+			const nom = bandeau.createSpan({ cls: "accueil-caps accueil-obj-projet", text: p.projet });
+			nom.addEventListener("click", () => this.ouvrirA(p.path, 0));
+			bandeau.createSpan({ cls: "accueil-obj-periode", text: [mois, p.fin && `jusqu’au ${dateCourte(p.fin)}`].filter(Boolean).join(" · ") });
+			for (const o of p.objectifs) etats.push(this.ligneObjectif(groupe, p, o));
+		}
+		const sub = head.querySelector(".accueil-muted") as HTMLElement;
+		sub.empty();
+		const mesures = etats.filter((e) => e !== null);
+		const dessus = etats.filter((e) => e === "dessus").length;
+		sub.createSpan({ text: `${etats.length} objectif${etats.length > 1 ? "s" : ""}${mesures.length ? ` · ${dessus} au-dessus` : ""}` });
+		if (replie && mesures.length) {
+			const points = sub.createSpan("accueil-obj-points");
+			for (const e of etats) points.createSpan(`accueil-obj-point ${e ? `is-${e}` : ""}`);
+		}
+	}
+
+	/**
+	 * Une ligne d'objectif : le nom, l'atteint face à la cible du moment, une barre fine, l'écart.
+	 * Le détail (sources, cible finale, échéance) en info-bulle ; un clic ouvre la ligne dans la note.
+	 * Rend « dessus » ou « dessous » quand l'objectif est mesuré, sinon null.
+	 */
+	private ligneObjectif(groupe: HTMLElement, p: Plan, o: Objectif): "dessus" | "dessous" | null {
+		const ligne = groupe.createDiv("accueil-obj-ligne");
+		if (o.fait) ligne.addClass("is-done");
+		ligne.createDiv({ cls: "accueil-obj-nom", text: o.nom });
+		const valeur = ligne.createDiv("accueil-obj-valeur");
+		const grand = (texte: string) => valeur.createSpan({ cls: "accueil-obj-chiffre", text: texte });
+		const petit = (texte: string, cls = "") => valeur.createSpan({ cls: `accueil-obj-cible ${cls}`, text: texte });
+		const barre = ligne.createDiv("accueil-obj-barre");
+		const ecartEl = ligne.createDiv("accueil-obj-ecart");
 		const jour = aujourdhui();
 		const pal = palier(o, p, jour);
-		const moment = pal?.mois ? ` en ${pal.mois}` : "";
-		const ligne = card.createDiv("accueil-objectif-cible");
-		const grand = (texte: string) => ligne.createSpan({ cls: "accueil-objectif-valeur", text: texte });
-		const petit = (texte: string, cls = "") => ligne.createSpan({ cls: `accueil-objectif-unite ${cls}`, text: texte });
+		const bulle: string[] = [];
+		let etat: "dessus" | "dessous" | null = null;
 		if (o.mesure && pal) {
 			const m = this.mesurer(o.mesure, bornes(periodeDe(o), jour, p));
 			if (m?.erreur) {
@@ -403,37 +450,35 @@ export class AccueilView extends ItemView {
 				petit(`rien à mesurer ${{ mois: "ce mois-ci", semaine: "cette semaine", trimestre: "ces trois mois", plan: "pour l'instant" }[periodeDe(o)]}`);
 			} else if (m?.valeur === undefined) {
 				grand("…");
-				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `sur ${pal.valeur}${moment}`);
+				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `/ ${pal.valeur}`);
 			} else {
 				const atteint = pal.valeur.trim().endsWith("%") && o.mesure.includes("/") ? m.valeur * 100 : m.valeur;
 				grand(commeCible(atteint, pal.valeur));
-				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `sur ${pal.valeur}${moment}`);
-				if (m.parts) {
-					const detail = m.parts.map((x) => `${x.nom.charAt(0).toUpperCase()}${x.nom.slice(1)} ${commeCible(x.valeur, pal.valeur)}`);
-					card.createDiv({ cls: "accueil-muted accueil-objectif-detail", text: detail.join(" · ") });
-				}
+				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `/ ${pal.valeur}`);
+				if (m.parts) bulle.push(m.parts.map((x) => `${x.nom.charAt(0).toUpperCase()}${x.nom.slice(1)} ${commeCible(x.valeur, pal.valeur)}`).join(" · "));
 				const vise = nombre(pal.valeur);
 				const e = vise ? ecart(atteint, vise) : null;
 				if (e) {
-					const pastille = card.createDiv({ cls: `accueil-objectif-ecart ${e.dessus ? "is-dessus" : "is-dessous"}` });
-					setIcon(pastille.createSpan(), e.dessus ? "arrow-up" : "arrow-down");
-					pastille.createSpan({ text: e.texte });
+					etat = e.dessus ? "dessus" : "dessous";
+					ecartEl.addClass(e.dessus ? "is-dessus" : "is-dessous");
+					ecartEl.setText(`${e.dessus ? "↑" : "↓"} ${e.texte}`);
 				}
 				if (vise) {
-					const barre = card.createDiv("accueil-objectif-barre").createDiv();
-					barre.style.width = `${Math.min(atteint / vise, 1) * 100}%`;
-					if (atteint >= vise) card.addClass("is-atteint");
+					barre.createDiv().style.width = `${Math.min(atteint / vise, 1) * 100}%`;
+					if (atteint >= vise) ligne.addClass("is-atteint");
 				}
 			}
 		} else {
 			const { valeur, unite } = chiffre(pal?.valeur ?? o.cible ?? "à fixer");
 			grand(valeur);
-			if (unite || moment) petit([unite, moment.trim()].filter(Boolean).join(" "));
+			if (unite) petit(unite);
 		}
-		const finale = pal && pal.valeur !== o.cible && o.cible;
-		const sous = [o.echeance && `d’ici au ${dateCourte(o.echeance)}`, finale, avecProjet && p.projet].filter(Boolean).join(" · ");
-		if (sous) card.createDiv({ cls: "accueil-muted", text: sous });
-		card.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));
+		if (pal?.mois) bulle.push(`cible de ${pal.mois} : ${pal.valeur}`);
+		if (pal && pal.valeur !== o.cible && o.cible) bulle.push(`cible finale : ${o.cible}`);
+		if (o.echeance) bulle.push(`d’ici au ${dateCourte(o.echeance)}`);
+		ligne.setAttr("aria-label", bulle.join("\n"));
+		ligne.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));
+		return etat;
 	}
 
 	/**

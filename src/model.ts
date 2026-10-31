@@ -23,6 +23,8 @@ export interface Settings {
 	masques: string[];
 	/** Canvas du tableau de vision. */
 	vision?: string;
+	/** La section Objectifs de l'onglet Plan, repliée (suit le vault, donc tous les appareils). */
+	objectifsReplies?: boolean;
 	/** Les sources des chiffres atteints des objectifs. */
 	connecteurs?: Connecteur[];
 }

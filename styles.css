@@ -475,3 +475,37 @@
 /* Choisir une image : le champ fichier couvre le bouton */
 .accueil-picker { position: relative; }
 .accueil-picker-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+/* Objectifs, au calme : un bloc par projet, une ligne par objectif (Figma 104:140), repliable (104:224) */
+.accueil-cliquable { cursor: pointer; }
+.accueil-objectifs-chevron { display: inline-flex; color: var(--accueil-muted); }
+.accueil-objectifs-chevron svg { width: 14px; height: 14px; }
+.accueil-obj-groupes { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 32px; align-items: start; }
+.accueil-obj-groupe { border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--accueil-ink) 3.5%, transparent); }
+.accueil-obj-bandeau { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 16px 24px; }
+.accueil-obj-bandeau > :not(.accueil-bg) { position: relative; }
+.accueil-obj-bandeau .accueil-bg { opacity: 0.45; }
+.accueil .accueil-obj-projet { font-size: 12px; letter-spacing: 0.18em; cursor: pointer; }
+.accueil-obj-periode { margin-left: auto; font-size: 13px; color: var(--accueil-muted); }
+.accueil-obj-ligne { display: grid; grid-template-columns: 200px 196px 1fr 72px; align-items: center; gap: 20px; padding: 14px 24px; border-top: 1px solid color-mix(in srgb, var(--accueil-ink) 6%, transparent); cursor: pointer; transition: background 0.12s ease; }
+.accueil-obj-ligne:hover { background: color-mix(in srgb, var(--accueil-ink) 3%, transparent); }
+.accueil-obj-ligne.is-done { opacity: 0.5; }
+.accueil-obj-nom { font-size: 14px; opacity: 0.85; }
+.accueil-obj-valeur { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.accueil-obj-chiffre { font-family: var(--accueil-titre); font-size: 26px; line-height: 1; white-space: nowrap; }
+.accueil-obj-cible { font-size: 13px; color: var(--accueil-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.accueil-obj-barre { height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--accueil-ink) 8%, transparent); overflow: hidden; }
+.accueil-obj-barre > div { height: 100%; border-radius: 2px; background: var(--accueil-ink); opacity: 0.45; }
+.accueil-obj-ligne.is-atteint .accueil-obj-barre > div { background: var(--accueil-green); opacity: 0.9; }
+.accueil-obj-ecart { text-align: right; font-family: var(--accueil-ui); font-size: 12px; white-space: nowrap; }
+.accueil-obj-ecart.is-dessus { color: var(--accueil-green); }
+.accueil-obj-ecart.is-dessous { color: var(--accueil-red); }
+.accueil-obj-points { display: inline-flex; gap: 5px; margin-left: 10px; vertical-align: middle; }
+.accueil-obj-point { width: 7px; height: 7px; border-radius: 50%; background: var(--accueil-muted); opacity: 0.6; }
+.accueil-obj-point.is-dessus { background: var(--accueil-green); opacity: 0.85; }
+.accueil-obj-point.is-dessous { background: var(--accueil-red); opacity: 0.85; }
+@container (max-width: 640px) {
+	.accueil-obj-groupes { grid-template-columns: 1fr; }
+	.accueil-obj-ligne { grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 16px; }
+	.accueil-obj-barre { grid-column: 1 / -1; }
+}
