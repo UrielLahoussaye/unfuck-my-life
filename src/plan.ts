@@ -207,7 +207,7 @@ export function nombre(texte: string): number | null {
 export function commeCible(n: number, cible: string): string {
 	const { valeur } = chiffre(cible);
 	const suffixe = valeur.match(/\s?(%|k€|€)$/)?.[0] ?? "";
-	const arrondi = Math.abs(n) >= 1000 ? Math.round(n / 10) * 10 : Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+	const arrondi = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
 	return arrondi.toLocaleString("fr-FR").replace(/\u202f|\u00a0/g, " ") + suffixe;
 }
 
@@ -279,3 +279,10 @@ const ecartMois = (a: string, b: string) => {
 	const [yb, mb] = b.split("-").map(Number);
 	return (yb - ya) * 12 + (mb - ma);
 };
+
+/** L'écart à la cible : « +25 % » au-dessus, sinon la part atteinte (« 37 % »). Sans cible : rien. */
+export function ecart(atteint: number, vise: number): { texte: string; dessus: boolean } | null {
+	if (!(vise > 0)) return null;
+	const dessus = atteint >= vise;
+	return dessus ? { texte: `+${Math.round((atteint / vise - 1) * 100)} %`, dessus } : { texte: `${Math.round((atteint / vise) * 100)} %`, dessus };
+}

@@ -4,6 +4,7 @@
 
 .accueil {
 	--accueil-red: #bd4747;
+	--accueil-green: #6faf7a;
 	--accueil-bg: var(--background-primary);
 	--accueil-card: color-mix(in srgb, var(--text-normal) 4%, var(--background-primary));
 	--accueil-line: var(--background-modifier-border);
@@ -376,6 +377,7 @@
 
 .accueil-objectifs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .accueil-objectif {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -387,7 +389,7 @@
 	transition: border-color 0.12s ease;
 }
 .accueil-objectif:hover { border-color: var(--accueil-red); }
-.accueil .accueil-objectif-nom { font-size: 12px; color: var(--accueil-muted); }
+.accueil .accueil-objectif-nom { font-size: 12px; color: var(--accueil-muted); padding-right: 64px; }
 .accueil-objectif-cible { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 2px; }
 .accueil-objectif-valeur { font-family: var(--accueil-titre); font-size: 52px; line-height: 1; letter-spacing: -0.03em; white-space: nowrap; }
 .accueil-objectif-unite { font-size: 15px; color: var(--accueil-muted); }
@@ -454,5 +456,9 @@
 .accueil-objectif-detail { margin-top: 2px; font-size: 0.85em; }
 .accueil-objectif-barre { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--accueil-line); overflow: hidden; }
 .accueil-objectif-barre > div { height: 100%; border-radius: 2px; background: var(--accueil-ink); opacity: 0.7; }
-.accueil-objectif.is-atteint .accueil-objectif-barre > div { background: var(--accueil-red); opacity: 1; }
+.accueil-objectif.is-atteint .accueil-objectif-barre > div { background: var(--accueil-green); opacity: 1; }
+.accueil-objectif-ecart { position: absolute; top: 16px; right: 20px; display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-family: var(--accueil-ui); font-size: 12px; }
+.accueil-objectif-ecart svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.accueil-objectif-ecart.is-dessus { color: var(--accueil-green); background: rgba(111, 175, 122, 0.14); }
+.accueil-objectif-ecart.is-dessous { color: var(--accueil-red); background: rgba(189, 71, 71, 0.14); }
 .accueil-reglage-connecteur { margin: 8px 0 16px; padding: 4px 16px; border: 1px solid var(--background-modifier-border); border-radius: 6px; }

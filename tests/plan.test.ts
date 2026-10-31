@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe, renommer } from "../src/plan";
+import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe, renommer, ecart } from "../src/plan";
 
 const note = [
 	"---",
@@ -125,7 +125,7 @@ describe("objectifs mesurés et paliers", () => {
 	});
 	it("lit les nombres et les réécrit au format de la cible", () => {
 		expect([nombre("10 000 €"), nombre("30 %"), nombre("50 par week-end"), nombre("à fixer")]).toEqual([10000, 30, 50, null]);
-		expect([commeCible(6243, "10 000 €"), commeCible(22.4, "30 %"), commeCible(17.5, "30")]).toEqual(["6 240 €", "22 %", "18"]);
+		expect([commeCible(6243, "10 000 €"), commeCible(22.4, "30 %"), commeCible(17.5, "30")]).toEqual(["6 243 €", "22 %", "18"]);
 	});
 	it("devine la période", () => {
 		expect([periodeDe(ca), periodeDe(activ), periodeDe(livre)]).toEqual(["mois", "semaine", "plan"]);
@@ -162,5 +162,14 @@ describe("renommer", () => {
 	});
 	it("ne touche pas un connecteur dont le nom finit pareil", () => {
 		expect(renommer("[mesure:: superstand.ca + stand.ca]", "stand", "festivals")).toBe("[mesure:: superstand.ca + festivals.ca]");
+	});
+});
+
+describe("ecart", () => {
+	it("au-dessus : ce qu'on a en plus ; en dessous : la part atteinte", () => {
+		expect(ecart(6240, 5000)).toEqual({ texte: "+25 %", dessus: true });
+		expect(ecart(5000, 5000)).toEqual({ texte: "+0 %", dessus: true });
+		expect(ecart(11, 30)).toEqual({ texte: "37 %", dessus: false });
+		expect(ecart(3, 0)).toBeNull();
 	});
 });

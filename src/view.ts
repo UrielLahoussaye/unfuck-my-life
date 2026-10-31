@@ -2,7 +2,7 @@ import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type Worksp
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
 import { evaluer, interroger, termes, type Valeurs } from "./connecteurs";
-import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, fenetre, moisDe, nombre, palier, parsePlan, periodeDe, position, positionFin, type Fenetre, type Ligne as LigneDePlan, type Objectif, type Plan } from "./plan";
+import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, ecart, fenetre, moisDe, nombre, palier, parsePlan, periodeDe, position, positionFin, type Fenetre, type Ligne as LigneDePlan, type Objectif, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
 import { SouvenirModal } from "./souvenir";
@@ -409,6 +409,12 @@ export class AccueilView extends ItemView {
 					card.createDiv({ cls: "accueil-muted accueil-objectif-detail", text: detail.join(" · ") });
 				}
 				const vise = nombre(pal.valeur);
+				const e = vise ? ecart(atteint, vise) : null;
+				if (e) {
+					const pastille = card.createDiv({ cls: `accueil-objectif-ecart ${e.dessus ? "is-dessus" : "is-dessous"}` });
+					setIcon(pastille.createSpan(), e.dessus ? "arrow-up" : "arrow-down");
+					pastille.createSpan({ text: e.texte });
+				}
 				if (vise) {
 					const barre = card.createDiv("accueil-objectif-barre").createDiv();
 					barre.style.width = `${Math.min(atteint / vise, 1) * 100}%`;
