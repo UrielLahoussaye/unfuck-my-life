@@ -402,11 +402,11 @@ export class AccueilView extends ItemView {
 				petit(`rien à mesurer ${{ mois: "ce mois-ci", semaine: "cette semaine", trimestre: "ces trois mois", plan: "pour l'instant" }[periodeDe(o)]}`);
 			} else if (m?.valeur === undefined) {
 				grand("…");
-				petit(`sur ${pal.valeur}${moment}`);
+				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `sur ${pal.valeur}${moment}`);
 			} else {
 				const atteint = pal.valeur.trim().endsWith("%") && o.mesure.includes("/") ? m.valeur * 100 : m.valeur;
 				grand(commeCible(atteint, pal.valeur));
-				petit(`sur ${pal.valeur}${moment}`);
+				petit(nombre(pal.valeur) === null ? `cible ${pal.valeur}` : `sur ${pal.valeur}${moment}`);
 				if (m.parts) {
 					const detail = m.parts.map((x) => `${x.nom.charAt(0).toUpperCase()}${x.nom.slice(1)} ${commeCible(x.valeur, pal.valeur)}`);
 					card.createDiv({ cls: "accueil-muted accueil-objectif-detail", text: detail.join(" · ") });
