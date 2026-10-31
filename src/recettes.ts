@@ -23,27 +23,49 @@ async function deriver(phrase: string, cle: CleRecettes): Promise<CryptoKey> {
 	return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: octets(cle.salt), iterations: cle.iterations }, matiere, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
 }
 
-/** Carte + Espèces en euros ; AES-GCM authentifie le message, une mauvaise clé fait donc échouer ici. */
-async function ouvrir(cle: CryptoKey, payload: string): Promise<number> {
+/** Le texte déchiffré : Carte + Espèces, en centimes. AES-GCM authentifie le message, une mauvaise clé échoue donc ici. */
+async function ouvrir(cle: CryptoKey, payload: string): Promise<string> {
 	const b = octets(payload);
-	const clair = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, cle, b.slice(12));
-	const { carte, especes } = JSON.parse(new TextDecoder().decode(clair)) as Record<string, string>;
-	return (Number(carte) + Number(especes)) / 100;
+	return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, cle, b.slice(12)));
+}
+
+/** Carte + Espèces en euros ; null si le message ouvert n'a pas la forme attendue. */
+function euros(clair: string): number | null {
+	try {
+		const { carte, especes } = JSON.parse(clair) as Record<string, unknown>;
+		const total = (Number(carte) + Number(especes)) / 100;
+		return Number.isFinite(total) ? total : null;
+	} catch {
+		return null;
+	}
+}
+
+/** `cle` et `secrets` tels que l'exposeur les promet ; sinon, une erreur qui le dit plutôt qu'un calcul faux. */
+function verifier(reponse: Record<string, any>): { cle: CleRecettes; secrets: SecretRecettes[] } {
+	const { cle, secrets } = reponse;
+	const cleBonne = cle && typeof cle.salt === "string" && Number.isInteger(cle.iterations) && cle.iterations > 0;
+	const secretsBons = Array.isArray(secrets) && secrets.every((s) => s && typeof s.payload === "string" && typeof s.dans_ca === "boolean");
+	if (!cleBonne || !secretsBons) throw new Error("recettes de Fellowship illisibles (cle ou secrets mal formés)");
+	return { cle, secrets };
 }
 
 /** Une copie de la réponse de l'exposeur où les recettes déchiffrées sont ajoutées à `ca_reel`, et à `ca` si `dans_ca`. */
 export async function ajouterRecettes(reponse: Record<string, any>, phrase: string): Promise<Record<string, any>> {
-	const cle = await deriver(phrase, reponse.cle);
+	const { cle: sel, secrets } = verifier(reponse);
+	const cle = await deriver(phrase, sel);
 	const copie = { ...reponse };
-	for (const s of reponse.secrets as SecretRecettes[]) {
-		let euros: number;
+	for (const s of secrets) {
+		let clair: string;
 		try {
-			euros = await ouvrir(cle, s.payload);
+			clair = await ouvrir(cle, s.payload);
 		} catch {
 			throw new Error("phrase des recettes incorrecte");
 		}
-		copie.ca_reel = Math.round((Number(copie.ca_reel ?? 0) + euros) * 100) / 100;
-		if (s.dans_ca) copie.ca = Math.round((Number(copie.ca ?? 0) + euros) * 100) / 100;
+		const montant = euros(clair);
+		// Le message s'ouvre (la phrase est bonne) mais ne contient pas deux montants : une recette abîmée, pas la phrase.
+		if (montant === null) throw new Error("recette de Fellowship illisible");
+		copie.ca_reel = Math.round((Number(copie.ca_reel ?? 0) + montant) * 100) / 100;
+		if (s.dans_ca) copie.ca = Math.round((Number(copie.ca ?? 0) + montant) * 100) / 100;
 	}
 	return copie;
 }

@@ -6,6 +6,12 @@ import { interroger, type Connecteur } from "../src/connecteurs";
 
 // Produits par le chiffrement de Fellowship (apps/web-v2/src/lib/cipher.ts, createKey + sealRevenue) :
 // si l'un des deux côtés change d'algorithme, ces constantes cassent le test.
+// Pour les régénérer, avec cipher.ts de Fellowship (Node 20+ ou navigateur, Web Crypto) :
+//   const { key, record } = await createKey("chêne lune forge rivière")  // record.salt, record.iterations → CLE
+//   await sealRevenue(key, { carte: 2830, especes: 1380 })                // → CARTE_2830_ESPECES_1380
+//   await sealRevenue(key, { carte: 100.5, especes: 0 })                  // → CARTE_100_5_ESPECES_0
+// Montants en euros ; cipher.ts les écrit en centimes sur 12 chiffres. Le sel change à chaque createKey :
+// remplacer les trois constantes ensemble.
 const PHRASE = "chêne lune forge rivière";
 const CLE = { salt: "Fbo5JwDxjHVFWdLk/o3v2A==", iterations: 600000 };
 const CARTE_2830_ESPECES_1380 = "4v++VBmFV33WmXLMUvcLyJgItlCbD+J8PFfDMJxGKhSZto4x7Pal/JHtmkNgGcTw6XOHPAE7NMkk2HeLuPfIFrW7Fsjs9HJXGJ+ANlM=";
@@ -34,6 +40,11 @@ describe("ajouterRecettes", () => {
 	it("la phrase est normalisée comme côté Fellowship (NFD, espace final)", async () => {
 		const r = await ajouterRecettes(reponse, PHRASE.normalize("NFD") + " ");
 		expect(r.ca_reel).toBe(4810.5);
+	});
+	it("cle ou secrets mal formés : erreur qui le dit, rien n'est compté", async () => {
+		await expect(ajouterRecettes({ ...reponse, cle: { salt: 1, iterations: "x" } }, PHRASE)).rejects.toThrow("illisibles");
+		await expect(ajouterRecettes({ ...reponse, secrets: [{ payload: 3 }] }, PHRASE)).rejects.toThrow("illisibles");
+		await expect(ajouterRecettes({ ...reponse, secrets: "x" }, PHRASE)).rejects.toThrow("illisibles");
 	});
 	it("une mauvaise phrase se dit", async () => {
 		await expect(ajouterRecettes(reponse, "une autre phrase de passe")).rejects.toThrow("phrase des recettes incorrecte");
