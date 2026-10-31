@@ -95,6 +95,20 @@ export function termes(expression: string): { connecteur: string; mesure: string
 	return liste.length > 1 ? liste : [];
 }
 
+/**
+ * Le nom de chaque part d'une somme : le connecteur quand ils diffèrent (« boutique », « stand »), sinon la mesure,
+ * sans le préfixe commun (« comptes_stand + comptes_flyer » → « stand », « flyer »).
+ */
+export function etiquettes(t: { connecteur: string; mesure: string }[]): string[] {
+	const parConnecteur = new Set(t.map((x) => x.connecteur)).size === t.length;
+	const noms = t.map((x) => (parConnecteur ? x.connecteur : x.mesure));
+	if (parConnecteur) return noms;
+	let commun = noms[0] ?? "";
+	for (const n of noms) while (!n.startsWith(commun)) commun = commun.slice(0, -1);
+	const coupe = commun.lastIndexOf("_") + 1;
+	return noms.map((n) => n.slice(coupe) || n);
+}
+
 /** Lit toutes les mesures d'un connecteur sur la fenêtre. */
 export async function interroger(app: App, c: Connecteur, f: Fenetre): Promise<Valeurs> {
 	const cle = c.secret ? app.secretStorage.getSecret(c.secret) : null;

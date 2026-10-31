@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("obsidian", () => ({ requestUrl: vi.fn() }));
-import { evaluer, lireMesures, remplir, suivre, termes } from "../src/connecteurs";
+import { evaluer, lireMesures, remplir, suivre, termes, etiquettes } from "../src/connecteurs";
 
 describe("connecteurs", () => {
 	it("lit les mesures d'un connecteur JSON", () => {
@@ -34,5 +34,13 @@ describe("termes", () => {
 	it("un seul terme ou une division : rien à détailler", () => {
 		expect(termes("boutique.ca")).toEqual([]);
 		expect(termes("h.act / h.ventes")).toEqual([]);
+	});
+});
+
+describe("etiquettes", () => {
+	it("le connecteur quand ils diffèrent, sinon la mesure sans son préfixe commun", () => {
+		expect(etiquettes(termes("boutique.ca + stand.ca"))).toEqual(["boutique", "stand"]);
+		expect(etiquettes(termes("hub.comptes_stand + hub.comptes_flyer + hub.comptes_app"))).toEqual(["stand", "flyer", "app"]);
+		expect(etiquettes(termes("hub.ca + hub.cachets"))).toEqual(["ca", "cachets"]);
 	});
 });

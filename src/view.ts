@@ -1,7 +1,7 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
-import { evaluer, interroger, termes, type Valeurs } from "./connecteurs";
+import { etiquettes, evaluer, interroger, termes, type Valeurs } from "./connecteurs";
 import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, ecart, fenetre, moisDe, nombre, palier, parsePlan, periodeDe, position, positionFin, type Fenetre, type Ligne as LigneDePlan, type Objectif, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
@@ -458,7 +458,8 @@ export class AccueilView extends ItemView {
 		const detail = async (valeur: number): Promise<Mesure> => {
 			const t = termes(expression);
 			if (!t.length) return { quand: Date.now(), valeur };
-			const parts = await Promise.all(t.map(async (x) => ({ nom: x.connecteur, valeur: await lire(x.connecteur, x.mesure) })));
+			const noms = etiquettes(t);
+			const parts = await Promise.all(t.map(async (x, i) => ({ nom: noms[i], valeur: await lire(x.connecteur, x.mesure) })));
 			return { quand: Date.now(), valeur, parts };
 		};
 		evaluer(expression, lire)
