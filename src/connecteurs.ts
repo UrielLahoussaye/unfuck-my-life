@@ -15,6 +15,11 @@ export interface Connecteur {
 	secret: string;
 	/** Shopify : `ma-boutique.myshopify.com`. */
 	domaine?: string;
+	/**
+	 * Shopify : l'ID client d'une app du Dev Dashboard installée sur sa propre boutique. Avec lui, le secret est le
+	 * « Client secret » et le plugin échange un jeton de 24 h ; sans lui, le secret est un jeton Admin qui n'expire pas.
+	 */
+	client?: string;
 	/** JSON : l'adresse, où `{debut}` et `{fin}` (AAAA-MM-JJ) sont remplacés. */
 	url?: string;
 	methode?: "GET" | "POST";
@@ -110,9 +115,31 @@ const COMMANDES = `query($q: String!, $apres: String) {
 	}
 }`;
 
+/** Les jetons de 24 h, gardés en mémoire jusqu'à une heure avant leur fin. */
+const jetons = new Map<string, { jeton: string; fin: number }>();
+
+/** L'échange « client credentials » de Shopify : réservé aux apps de sa propre organisation, sur ses propres boutiques. */
+async function jetonShopify(domaine: string, client: string, secret: string): Promise<string> {
+	const cle = `${domaine}|${client}`;
+	const connu = jetons.get(cle);
+	if (connu && Date.now() < connu.fin) return connu.jeton;
+	const res = await requestUrl({
+		url: `https://${domaine}/admin/oauth/access_token`,
+		method: "POST",
+		contentType: "application/x-www-form-urlencoded",
+		body: new URLSearchParams({ client_id: client, client_secret: secret, grant_type: "client_credentials" }).toString(),
+		throw: false,
+	});
+	const jeton = res.json?.access_token;
+	if (res.status >= 400 || !jeton) throw new Error(`Shopify refuse l'ID client ou le secret (${res.status})`);
+	jetons.set(cle, { jeton, fin: Date.now() + (Number(res.json.expires_in ?? 86399) - 3600) * 1000 });
+	return jeton;
+}
+
 /** CA (remboursements déduits) et nombre des commandes payées, créées dans la fenêtre. */
-async function shopify(c: Connecteur, cle: string, f: Fenetre): Promise<Valeurs> {
+async function shopify(c: Connecteur, secret: string, f: Fenetre): Promise<Valeurs> {
 	if (!c.domaine) throw new Error(`${c.id} : domaine manquant`);
+	const cle = c.client ? await jetonShopify(c.domaine, c.client, secret) : secret;
 	const q = `created_at:>=${f.debut} created_at:<=${f.fin}T23:59:59 (financial_status:paid OR financial_status:partially_refunded)`;
 	let ca = 0;
 	let commandes = 0;

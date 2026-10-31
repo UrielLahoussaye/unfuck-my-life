@@ -130,13 +130,14 @@ export class AccueilSettingTab extends PluginSettingTab {
 					await save();
 				}),
 			);
-			const texte = (nom: string, desc: string, cle: "domaine" | "url" | "entete" | "prefixe", placeholder = "") =>
+			const texte = (nom: string, desc: string, cle: "domaine" | "client" | "url" | "entete" | "prefixe", placeholder = "") =>
 				new Setting(bloc).setName(nom).setDesc(desc).addText((t) => t.setPlaceholder(placeholder).setValue(c[cle] ?? "").onChange(async (v) => {
 					c[cle] = v;
 					await save();
 				}));
 			if (c.type === "shopify") {
-				texte("Domaine", `Mesures fournies : ${MESURES_SHOPIFY.join(", ")}. Jeton Admin avec la lecture des commandes.`, "domaine", "ma-boutique.myshopify.com");
+				texte("Domaine", `Mesures fournies : ${MESURES_SHOPIFY.join(", ")}.`, "domaine", "ma-boutique.myshopify.com");
+				texte("ID client", "App du Dev Dashboard (droit read_orders) : son ID client ici, son « Client secret » dans la clé. Vide : la clé est un jeton Admin.", "client");
 				return;
 			}
 			texte("Adresse", "{debut} et {fin} deviennent les dates de la période (AAAA-MM-JJ).", "url", "https://…");
