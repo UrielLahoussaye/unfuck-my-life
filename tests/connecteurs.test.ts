@@ -19,7 +19,7 @@ describe("connecteurs", () => {
 		const lire = async (c: string, m: string) => v[`${c}.${m}`];
 		expect(await evaluer("b.ca + f.ca", lire)).toBe(6240);
 		expect(await evaluer("h.act / h.ventes", lire)).toBe(0.22);
-		await expect(evaluer("b.ca / h.zero", async () => 0)).rejects.toThrow("division par zéro");
+		expect(await evaluer("b.ca / h.zero", async () => 0)).toBeNaN();
 		await expect(evaluer("boutique", lire)).rejects.toThrow("connecteur.mesure");
 	});
 });

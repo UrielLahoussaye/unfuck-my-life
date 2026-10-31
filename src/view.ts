@@ -397,6 +397,9 @@ export class AccueilView extends ItemView {
 			if (m?.erreur) {
 				grand("—");
 				petit(m.erreur, "accueil-red");
+			} else if (m?.valeur !== undefined && Number.isNaN(m.valeur)) {
+				grand("—");
+				petit(`rien à mesurer ${{ mois: "ce mois-ci", semaine: "cette semaine", trimestre: "ces trois mois", plan: "pour l'instant" }[periodeDe(o)]}`);
 			} else if (m?.valeur === undefined) {
 				grand("…");
 				petit(`sur ${pal.valeur}${moment}`);

@@ -63,7 +63,7 @@ export function suivre(json: unknown, chemin: string): number {
 
 /**
  * Évalue `[mesure:: …]` : des termes `connecteur.mesure` additionnés, puis un éventuel `/` qui divise par une autre somme.
- * `lire(connecteur, mesure)` fournit chaque terme. Une division renvoie un quotient (0,22), à mettre en % par l'appelant.
+ * `lire(connecteur, mesure)` fournit chaque terme. Une division renvoie un quotient (0,22), à mettre en % par l'appelant ; un diviseur nul rend NaN.
  */
 export async function evaluer(expression: string, lire: (connecteur: string, mesure: string) => Promise<number>): Promise<number> {
 	const [haut, bas, ...trop] = expression.split("/");
@@ -80,7 +80,8 @@ export async function evaluer(expression: string, lire: (connecteur: string, mes
 	const n = await somme(haut);
 	if (bas === undefined) return n;
 	const d = await somme(bas);
-	if (!d) throw new Error("division par zéro");
+	// Rien à diviser (aucune inscription cette semaine…) : pas une panne, une période vide.
+	if (!d) return NaN;
 	return n / d;
 }
 
