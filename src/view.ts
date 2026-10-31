@@ -1,6 +1,7 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
+import { aujourdhui, basculer, dateCourte, fenetre, moisDe, parsePlan, position, positionFin, type Ligne as LigneDePlan, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
 import { SouvenirModal } from "./souvenir";
@@ -11,7 +12,9 @@ import type AccueilPlugin from "./main";
 export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
 export class AccueilView extends ItemView {
-	private page: "accueil" | "vision" | "entrainement" = "accueil";
+	private page: "accueil" | "vision" | "entrainement" | "timeline" = "accueil";
+	/** Le projet choisi sur la Timeline ; sans choix, tous. */
+	private projet: string | null = null;
 	/** La séance choisie dans l'onglet Entraînement ; sans choix, la prochaine. */
 	private seance?: number | "regles";
 	/** La tâche tirée au mélange, par _État.md. Valable le jour du tirage : le lendemain, chaque paquet repart de sa priorité. */
@@ -59,6 +62,11 @@ export class AccueilView extends ItemView {
 			root.scrollTop = scroll;
 			return;
 		}
+		if (this.page === "timeline") {
+			await this.timeline(root);
+			root.scrollTop = scroll;
+			return;
+		}
 		this.header(root, "Mon Cerveau");
 		let n = 0;
 		if (home.metiers.length) this.metiers(this.section(root, ++n, "Le Métier", "ce qui doit rapporter"), home.metiers);
@@ -69,7 +77,7 @@ export class AccueilView extends ItemView {
 
 	private tabs(root: HTMLElement) {
 		const bar = root.createDiv("accueil-tabs");
-		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"], ["entrainement", "Entraînement"]] as const) {
+		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"], ["entrainement", "Entraînement"], ["timeline", "Timeline"]] as const) {
 			const tab = bar.createDiv({ cls: "accueil-tab accueil-caps", text: label });
 			if (page === this.page) tab.addClass("is-active");
 			tab.addEventListener("click", () => {
@@ -288,6 +296,117 @@ export class AccueilView extends ItemView {
 		}
 	}
 
+	/** Les notes marquées `type: plan`, hors dossiers masqués, rangées par projet. */
+	private async plans(): Promise<Plan[]> {
+		const masques = this.plugin.settings.masques;
+		const files = this.app.vault
+			.getMarkdownFiles()
+			.filter((f) => this.app.metadataCache.getFileCache(f)?.frontmatter?.type === "plan")
+			.filter((f) => !masques.some((m) => f.path === m || f.path.startsWith(m + "/")));
+		const plans = await Promise.all(files.map(async (f) => parsePlan(await this.app.vault.cachedRead(f), f.path)));
+		return plans.sort((a, b) => a.projet.localeCompare(b.projet, "fr"));
+	}
+
+	/** La page Timeline : les objectifs en cartes, puis la frise, une ligne par jalon. Maquette Figma 94:140. */
+	private async timeline(root: HTMLElement) {
+		this.header(root, "Le Plan");
+		const plans = await this.plans();
+		if (!plans.length) {
+			root.createDiv({ cls: "accueil-muted", text: "Aucun plan : une note avec « type: plan » en tête, et ses sections « ## Objectifs » et « ## Jalons »." });
+			return;
+		}
+		const projets = [...new Set(plans.map((p) => p.projet))];
+		if (this.projet && !projets.includes(this.projet)) this.projet = null;
+		if (projets.length > 1) {
+			const bar = root.createDiv("accueil-pills accueil-plan-filtres");
+			for (const nom of [null, ...projets]) {
+				const pill = bar.createDiv({ cls: "accueil-pill", text: nom ?? "Tous les projets" });
+				if (nom === this.projet) pill.addClass("is-active");
+				pill.addEventListener("click", () => {
+					this.projet = nom;
+					this.render();
+				});
+			}
+		}
+		const vus = plans.filter((p) => !this.projet || p.projet === this.projet);
+		let n = 0;
+		const objectifs = vus.flatMap((p) => p.objectifs.map((o) => ({ p, o })));
+		if (objectifs.length) {
+			const s = this.section(root, ++n, "Objectifs", "ce qu’on vise");
+			const grid = s.createDiv("accueil-objectifs");
+			for (const { p, o } of objectifs) {
+				const card = grid.createDiv("accueil-objectif");
+				if (o.fait) card.addClass("is-done");
+				card.createDiv("accueil-filet");
+				card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
+				card.createDiv({ cls: "accueil-objectif-cible", text: o.cible ?? "à fixer" });
+				const sous = [o.echeance && `d’ici au ${dateCourte(o.echeance)}`, projets.length > 1 && !this.projet && p.projet].filter(Boolean).join(" · ");
+				if (sous) card.createDiv({ cls: "accueil-muted", text: sous });
+				card.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));
+			}
+		}
+		const f = fenetre(vus);
+		if (!f) return;
+		const s = this.section(root, ++n, "La frise", `${moisAn(f.debut)} → ${moisAn(f.fin)}`);
+		const frise = s.createDiv("accueil-frise");
+		const fond = frise.createDiv("accueil-frise-fond");
+		moisDe(f).forEach((m, i) => {
+			const bande = fond.createDiv("accueil-frise-mois");
+			if (i % 2 === 0) bande.addClass("is-pair");
+			bande.style.left = pct(m.debut);
+			bande.style.width = pct(m.fin - m.debut);
+			bande.createDiv({ cls: "accueil-caps", text: m.nom });
+		});
+		const jour = aujourdhui();
+		if (jour >= f.debut && jour <= f.fin) {
+			const trait = fond.createDiv("accueil-frise-auj");
+			trait.style.left = pct(position(jour, f));
+			trait.createSpan({ cls: "accueil-caps", text: "Aujourd’hui" });
+		}
+		frise.createDiv("accueil-frise-tete");
+		for (const p of vus) {
+			const tete = frise.createDiv({ cls: "accueil-frise-projet accueil-caps", text: p.projet });
+			tete.addEventListener("click", () => this.ouvrirA(p.path, 0));
+			for (const j of p.jalons) this.ligneDeFrise(frise, p, j, f);
+		}
+		frise.createDiv({ cls: "accueil-frise-legende accueil-muted", text: "◇ tâche · ◆ jalon (#jalon) · ▬ période (🛫 → 📅) · la case coche la ligne dans la note · un clic sur le texte ouvre la note" });
+	}
+
+	private ligneDeFrise(frise: HTMLElement, p: Plan, j: LigneDePlan, f: { debut: string; fin: string }) {
+		const row = frise.createDiv("accueil-frise-ligne");
+		if (j.fait) row.addClass("is-done");
+		const label = row.createDiv("accueil-frise-label");
+		const box = label.createEl("button", { cls: "accueil-frise-case", attr: { "aria-label": j.fait ? "Décocher" : "Cocher" } });
+		if (j.fait) setIcon(box, "check");
+		box.addEventListener("click", () => this.basculerJalon(p.path, j));
+		label.createSpan({ text: taskLabel(j.texte) }).addEventListener("click", () => this.ouvrirA(p.path, j.ligne));
+		const piste = row.createDiv("accueil-frise-piste");
+		if (!j.echeance) return;
+		if (j.debut) {
+			const bande = piste.createDiv("accueil-frise-bande");
+			bande.style.left = pct(position(j.debut, f));
+			bande.style.width = pct(positionFin(j.echeance, f) - position(j.debut, f));
+			bande.setAttr("aria-label", `${dateCourte(j.debut)} → ${dateCourte(j.echeance)}`);
+		} else {
+			const losange = piste.createDiv("accueil-frise-losange");
+			if (j.jalon) losange.addClass("is-jalon");
+			losange.style.left = pct((position(j.echeance, f) + positionFin(j.echeance, f)) / 2);
+			losange.setAttr("aria-label", dateCourte(j.echeance));
+		}
+	}
+
+	/** La case de la frise écrit dans la note ; le cache de métadonnées prévient l'accueil, qui se redessine. */
+	private async basculerJalon(path: string, j: LigneDePlan) {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) await this.app.vault.process(file, (md) => basculer(md, j.ligne, j.texte));
+	}
+
+	/** Ouvre la note, curseur sur la ligne. */
+	private ouvrirA(path: string, line: number) {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file, { eState: { line } });
+	}
+
 	private async ecrireLog(ligne: Ligne) {
 		const file = this.app.vault.getAbstractFileByPath(PROGRAMME);
 		if (file instanceof TFile) await this.app.vault.process(file, (md) => addLogRow(md, ligne));
@@ -417,6 +536,11 @@ function champ(parent: HTMLElement, unite: string, mode: string, value = ""): HT
 }
 
 const today = () => new Date().toDateString();
+
+const pct = (x: number) => `${(x * 100).toFixed(3)}%`;
+
+/** « 2026-11-01 » → « nov. 2026 » */
+const moisAn = (date: string) => new Date(date + "T00:00:00Z").toLocaleDateString("fr-FR", { month: "short", year: "numeric", timeZone: "UTC" });
 
 function arrow(parent: HTMLElement): HTMLElement {
 	const a = parent.createSpan("accueil-arrow");

@@ -370,3 +370,80 @@
 	.accueil-card.is-big { min-height: 320px; }
 	.is-big .accueil-card-title { font-size: 48px; }
 }
+
+/* Timeline — maquette Figma « Timeline — A · La frise » (94:140) */
+.accueil-plan-filtres { margin: -32px 0 48px; }
+
+.accueil-objectifs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.accueil-objectif {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 20px;
+	border: 1px solid var(--accueil-line);
+	border-radius: 6px;
+	background: var(--accueil-card);
+	cursor: pointer;
+	transition: border-color 0.12s ease;
+}
+.accueil-objectif:hover { border-color: var(--accueil-red); }
+.accueil .accueil-objectif-nom { font-size: 12px; color: var(--accueil-muted); }
+.accueil-objectif-cible { font-size: 32px; line-height: 1.1; }
+.accueil-objectif.is-done { opacity: 0.5; }
+
+.accueil-frise { --label: 34%; position: relative; }
+.accueil-frise-fond { position: absolute; top: 0; bottom: 0; left: var(--label); right: 0; pointer-events: none; }
+.accueil-frise-mois { position: absolute; top: 0; bottom: 0; }
+.accueil-frise-mois.is-pair { background: var(--accueil-card); }
+.accueil .accueil-frise-mois .accueil-caps { padding: 14px 10px; font-size: 12px; color: var(--accueil-muted); }
+.accueil-frise-auj { position: absolute; top: 44px; bottom: 0; width: 2px; margin-left: -1px; background: var(--accueil-red); }
+.accueil .accueil-frise-auj .accueil-caps { position: absolute; top: -18px; left: 6px; font-size: 10px; white-space: nowrap; color: var(--accueil-red); }
+.accueil-frise-tete { height: 44px; border-bottom: 1px solid var(--accueil-line); }
+.accueil .accueil-frise-projet { position: relative; width: var(--label); padding: 18px 0 6px; font-size: 12px; color: var(--accueil-red); cursor: pointer; }
+.accueil-frise-ligne {
+	position: relative;
+	display: grid;
+	grid-template-columns: var(--label) 1fr;
+	align-items: center;
+	min-height: 34px;
+	border-bottom: 1px solid color-mix(in srgb, var(--accueil-line) 40%, transparent);
+}
+.accueil-frise-label { display: flex; align-items: center; gap: 10px; padding-right: 16px; font-size: 15px; line-height: 1.25; }
+.accueil-frise-label > span { cursor: pointer; }
+.accueil-frise-label > span:hover { color: var(--accueil-red); }
+.accueil .accueil-frise-case {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	border: 1.2px solid var(--accueil-muted);
+	border-radius: 3px;
+	background: transparent;
+	box-shadow: none;
+	cursor: pointer;
+}
+.accueil .accueil-frise-case:hover { border-color: var(--accueil-red); }
+.accueil-frise-case svg { width: 11px; height: 11px; color: var(--accueil-red); }
+.accueil-frise-piste { position: relative; align-self: stretch; }
+.accueil-frise-losange {
+	position: absolute;
+	top: 50%;
+	width: 11px;
+	height: 11px;
+	border: 1.5px solid var(--accueil-ink);
+	background: var(--accueil-bg);
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+.accueil-frise-losange.is-jalon { border-color: var(--accueil-red); background: var(--accueil-red); }
+.accueil-frise-bande { position: absolute; top: 50%; height: 14px; min-width: 6px; border-radius: 7px; background: var(--accueil-red); opacity: 0.75; transform: translateY(-50%); }
+.accueil-frise-ligne.is-done .accueil-frise-label > span { color: var(--accueil-muted); text-decoration: line-through; }
+.accueil-frise-ligne.is-done .accueil-frise-piste > * { opacity: 0.35; }
+.accueil .accueil-frise-legende { position: relative; padding-top: 20px; font-size: 13px; }
+
+@container (max-width: 700px) {
+	.accueil-frise { --label: 48%; }
+	.accueil-frise-label { font-size: 13px; }
+}

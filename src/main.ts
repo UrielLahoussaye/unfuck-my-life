@@ -18,6 +18,8 @@ export default class AccueilPlugin extends Plugin {
 			for (const evt of ["create", "modify", "delete", "rename"] as const) {
 				this.registerEvent(this.app.vault.on(evt as "create", (f) => shouldRefresh(evt, f.path, this.settings.vision) && refresh()));
 			}
+			// Une note de plan modifiée (une case cochée sur la frise, une date changée) redessine la Timeline.
+			this.registerEvent(this.app.metadataCache.on("changed", (_f, _d, cache) => cache.frontmatter?.type === "plan" && refresh()));
 			this.activateView();
 		});
 	}
