@@ -1,7 +1,7 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
-import { evaluer, interroger, type Valeurs } from "./connecteurs";
+import { evaluer, interroger, termes, type Valeurs } from "./connecteurs";
 import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, fenetre, moisDe, nombre, palier, parsePlan, periodeDe, position, positionFin, type Fenetre, type Ligne as LigneDePlan, type Objectif, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
@@ -12,12 +12,15 @@ import type AccueilPlugin from "./main";
 
 export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
+
+/** Une mesure lue : sa valeur, ou l'erreur, et pour une somme de sources la part de chacune. */
+type Mesure = { quand: number; valeur?: number; erreur?: string; parts?: { nom: string; valeur: number }[] };
 export class AccueilView extends ItemView {
 	private page: "accueil" | "vision" | "entrainement" | "timeline" = "accueil";
 	/** Le projet choisi sur la Timeline ; sans choix, tous. */
 	private projet: string | null = null;
 	/** Les mesures lues, par expression et fenêtre : jamais écrites dans le vault. */
-	private mesures = new Map<string, { quand: number; valeur?: number; erreur?: string }>();
+	private mesures = new Map<string, Mesure>();
 	private enCours = new Set<string>();
 	/** La séance choisie dans l'onglet Entraînement ; sans choix, la prochaine. */
 	private seance?: number | "regles";
@@ -401,6 +404,10 @@ export class AccueilView extends ItemView {
 				const atteint = pal.valeur.trim().endsWith("%") && o.mesure.includes("/") ? m.valeur * 100 : m.valeur;
 				grand(commeCible(atteint, pal.valeur));
 				petit(`sur ${pal.valeur}${moment}`);
+				if (m.parts) {
+					const detail = m.parts.map((x) => `${x.nom.charAt(0).toUpperCase()}${x.nom.slice(1)} ${commeCible(x.valeur, pal.valeur)}`);
+					card.createDiv({ cls: "accueil-muted accueil-objectif-detail", text: detail.join(" · ") });
+				}
 				const vise = nombre(pal.valeur);
 				if (vise) {
 					const barre = card.createDiv("accueil-objectif-barre").createDiv();
@@ -423,7 +430,7 @@ export class AccueilView extends ItemView {
 	 * La valeur d'une mesure sur une fenêtre, gardée quinze minutes en mémoire. Absente ou périmée : lue en arrière-plan,
 	 * puis la page se redessine. Rend ce qu'on a en attendant.
 	 */
-	private mesurer(expression: string, f: Fenetre): { valeur?: number; erreur?: string } | undefined {
+	private mesurer(expression: string, f: Fenetre): Mesure | undefined {
 		const cle = `${expression}|${f.debut}|${f.fin}`;
 		const connu = this.mesures.get(cle);
 		if ((connu && Date.now() - connu.quand < QUINZE_MINUTES) || this.enCours.has(cle)) return connu;
@@ -438,8 +445,16 @@ export class AccueilView extends ItemView {
 			if (v === undefined) throw new Error(`${id} ne fournit pas « ${mesure} »`);
 			return v;
 		};
+		// Une somme de plusieurs sources garde aussi la part de chacune (les lectures sont déjà en mémoire).
+		const detail = async (valeur: number): Promise<Mesure> => {
+			const t = termes(expression);
+			if (!t.length) return { quand: Date.now(), valeur };
+			const parts = await Promise.all(t.map(async (x) => ({ nom: x.connecteur, valeur: await lire(x.connecteur, x.mesure) })));
+			return { quand: Date.now(), valeur, parts };
+		};
 		evaluer(expression, lire)
-			.then((valeur) => this.mesures.set(cle, { quand: Date.now(), valeur }))
+			.then(detail)
+			.then((m) => this.mesures.set(cle, m))
 			.catch((e: Error) => this.mesures.set(cle, { quand: Date.now(), erreur: e.message }))
 			.finally(() => {
 				this.enCours.delete(cle);

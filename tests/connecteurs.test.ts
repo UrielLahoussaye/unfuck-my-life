@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("obsidian", () => ({ requestUrl: vi.fn() }));
-import { evaluer, lireMesures, remplir, suivre } from "../src/connecteurs";
+import { evaluer, lireMesures, remplir, suivre, termes } from "../src/connecteurs";
 
 describe("connecteurs", () => {
 	it("lit les mesures d'un connecteur JSON", () => {
@@ -21,5 +21,18 @@ describe("connecteurs", () => {
 		expect(await evaluer("h.act / h.ventes", lire)).toBe(0.22);
 		await expect(evaluer("b.ca / h.zero", async () => 0)).rejects.toThrow("division par zéro");
 		await expect(evaluer("boutique", lire)).rejects.toThrow("connecteur.mesure");
+	});
+});
+
+describe("termes", () => {
+	it("une somme de sources se détaille", () => {
+		expect(termes("boutique.ca + fellowship.ca")).toEqual([
+			{ connecteur: "boutique", mesure: "ca" },
+			{ connecteur: "fellowship", mesure: "ca" },
+		]);
+	});
+	it("un seul terme ou une division : rien à détailler", () => {
+		expect(termes("boutique.ca")).toEqual([]);
+		expect(termes("h.act / h.ventes")).toEqual([]);
 	});
 });

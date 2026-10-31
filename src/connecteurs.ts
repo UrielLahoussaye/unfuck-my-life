@@ -84,6 +84,16 @@ export async function evaluer(expression: string, lire: (connecteur: string, mes
 	return n / d;
 }
 
+/** Les termes d'une somme pure (« b.ca + f.ca »), pour en montrer le détail. Une division ou un seul terme : rien à détailler. */
+export function termes(expression: string): { connecteur: string; mesure: string }[] {
+	if (expression.includes("/")) return [];
+	const liste = expression.split("+").map((t) => t.trim()).filter(Boolean).map((t) => {
+		const [connecteur = "", mesure = ""] = t.split(".");
+		return { connecteur, mesure };
+	});
+	return liste.length > 1 ? liste : [];
+}
+
 /** Lit toutes les mesures d'un connecteur sur la fenêtre. */
 export async function interroger(app: App, c: Connecteur, f: Fenetre): Promise<Valeurs> {
 	const cle = c.secret ? app.secretStorage.getSecret(c.secret) : null;
