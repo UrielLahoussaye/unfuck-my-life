@@ -6,6 +6,7 @@
  */
 import { requestUrl, type App } from "obsidian";
 import type { Fenetre } from "./plan";
+import { ajouterRecettes } from "./recettes";
 
 export interface Connecteur {
 	/** Court et sans espace : `boutique`, `fellowship`. C'est lui qu'on écrit dans `[mesure:: boutique.ca]`. */
@@ -30,6 +31,11 @@ export interface Connecteur {
 	prefixe?: string;
 	/** JSON : `nom = chemin.dans.la.reponse`, une mesure par ligne. */
 	mesures?: string;
+	/**
+	 * JSON : nom du secret qui garde la phrase des recettes chiffrées de Fellowship (coffre d'Obsidian, par appareil).
+	 * Quand la réponse porte `cle` et `secrets`, le plugin les déchiffre et les ajoute à `ca_reel` (et à `ca`).
+	 */
+	secretPhrase?: string;
 }
 
 export type Valeurs = Record<string, number>;
@@ -113,10 +119,10 @@ export function etiquettes(t: { connecteur: string; mesure: string }[]): string[
 export async function interroger(app: App, c: Connecteur, f: Fenetre): Promise<Valeurs> {
 	const cle = c.secret ? app.secretStorage.getSecret(c.secret) : null;
 	if (!cle) throw new Error(`${c.id} : clé absente du coffre`);
-	return c.type === "shopify" ? shopify(c, cle, f) : json(c, cle, f);
+	return c.type === "shopify" ? shopify(c, cle, f) : json(app, c, cle, f);
 }
 
-async function json(c: Connecteur, cle: string, f: Fenetre): Promise<Valeurs> {
+async function json(app: App, c: Connecteur, cle: string, f: Fenetre): Promise<Valeurs> {
 	if (!c.url) throw new Error(`${c.id} : adresse manquante`);
 	const methode = c.methode ?? "GET";
 	const res = await requestUrl({
@@ -127,11 +133,19 @@ async function json(c: Connecteur, cle: string, f: Fenetre): Promise<Valeurs> {
 		throw: false,
 	});
 	if (res.status >= 400) throw new Error(`${c.id} : réponse ${res.status}`);
+	let reponse = res.json;
+	if (reponse?.cle && reponse.secrets?.length) {
+		const phrase = c.secretPhrase ? app.secretStorage.getSecret(c.secretPhrase) : null;
+		if (!phrase) throw new Error(`${c.id} : phrase des recettes absente du coffre`);
+		reponse = await ajouterRecettes(reponse, phrase).catch((e: Error) => {
+			throw new Error(`${c.id} : ${e.message}`);
+		});
+	}
 	const out: Valeurs = {};
 	// Une mesure absente de la réponse ne fait tomber que les objectifs qui la lisent, pas tout le connecteur.
 	for (const [nom, chemin] of lireMesures(c.mesures)) {
 		try {
-			out[nom] = suivre(res.json, chemin);
+			out[nom] = suivre(reponse, chemin);
 		} catch {
 			// laissée vide : lire() dira « ne fournit pas » sur la seule carte concernée
 		}

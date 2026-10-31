@@ -186,6 +186,12 @@ export class AccueilSettingTab extends PluginSettingTab {
 			}
 			texte("En-tête de la clé", "Par défaut Authorization.", "entete", "Authorization");
 			texte("Avant la clé", "Par défaut « Bearer ».", "prefixe", "Bearer ");
+			new Setting(bloc).setName("Phrase des recettes").setDesc("Facultatif : le secret qui garde la phrase de passe des recettes chiffrées de Fellowship, pour les compter dans le CA.").addComponent((cel) =>
+				new SecretComponent(this.app, cel).setValue(c.secretPhrase ?? "").onChange(async (v) => {
+					c.secretPhrase = v || undefined;
+					await save();
+				}),
+			);
 			new Setting(bloc).setName("Mesures").setDesc("Une par ligne : nom = chemin dans la réponse (data.ca, 0.total).").addTextArea((t) => t.setPlaceholder("ca = ca\nca_projete = ca_projete").setValue(c.mesures ?? "").onChange(async (v) => {
 				c.mesures = v;
 				await save();
