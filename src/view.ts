@@ -1,7 +1,7 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
-import { aujourdhui, basculer, dateCourte, fenetre, moisDe, parsePlan, position, positionFin, type Ligne as LigneDePlan, type Plan } from "./plan";
+import { aujourdhui, basculer, chiffre, dateCourte, fenetre, moisDe, parsePlan, position, positionFin, type Ligne as LigneDePlan, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
 import { SouvenirModal } from "./souvenir";
@@ -339,7 +339,10 @@ export class AccueilView extends ItemView {
 				if (o.fait) card.addClass("is-done");
 				card.createDiv("accueil-filet");
 				card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
-				card.createDiv({ cls: "accueil-objectif-cible", text: o.cible ?? "à fixer" });
+				const { valeur, unite } = chiffre(o.cible ?? "à fixer");
+				const cible = card.createDiv("accueil-objectif-cible");
+				cible.createSpan({ cls: "accueil-objectif-valeur", text: valeur });
+				if (unite) cible.createSpan({ cls: "accueil-objectif-unite", text: unite });
 				const sous = [o.echeance && `d’ici au ${dateCourte(o.echeance)}`, projets.length > 1 && !this.projet && p.projet].filter(Boolean).join(" · ");
 				if (sous) card.createDiv({ cls: "accueil-muted", text: sous });
 				card.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));

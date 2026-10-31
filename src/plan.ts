@@ -152,3 +152,10 @@ function champ(tete: string, nom: string): string | undefined {
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const jours = (a: string, b: string) => (Date.parse(b) - Date.parse(a)) / 864e5;
 const lendemain = (d: string) => iso(new Date(Date.parse(d) + 864e5));
+
+/** « 50 par week-end » → valeur « 50 », unité « par week-end » : le chiffre en grand, le reste en petit. Sans chiffre en tête, tout est la valeur. */
+export function chiffre(cible: string): { valeur: string; unite?: string } {
+	const m = cible.match(/^([\d][\d\s.,]*(?:\s?(?:%|k€|€))?)\s*(.*)$/);
+	if (!m) return { valeur: cible };
+	return { valeur: m[1].trim(), unite: m[2].trim() || undefined };
+}

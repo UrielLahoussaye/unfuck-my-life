@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aujourdhui, basculer, dateCourte, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe } from "../src/plan";
+import { aujourdhui, basculer, chiffre, dateCourte, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe } from "../src/plan";
 
 const note = [
 	"---",
@@ -94,5 +94,14 @@ describe("la frise", () => {
 	it("tire le projet du dossier de la note", () => {
 		expect(projetDe("2. Fellowship/Plan.md")).toBe("Fellowship");
 		expect(projetDe("Plan.md")).toBe("Vault");
+	});
+});
+
+describe("chiffre", () => {
+	it("sépare le chiffre de son unité", () => {
+		expect(chiffre("50 par week-end")).toEqual({ valeur: "50", unite: "par week-end" });
+		expect(chiffre("30 %")).toEqual({ valeur: "30 %", unite: undefined });
+		expect(chiffre("12 000 € de CA")).toEqual({ valeur: "12 000 €", unite: "de CA" });
+		expect(chiffre("à fixer")).toEqual({ valeur: "à fixer" });
 	});
 });
