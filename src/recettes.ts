@@ -49,8 +49,11 @@ function verifier(reponse: Record<string, any>): { cle: CleRecettes; secrets: Se
 	return { cle, secrets };
 }
 
-/** Une copie de la réponse de l'exposeur où les recettes déchiffrées sont ajoutées à `ca_reel`, et à `ca` si `dans_ca`. */
-export async function ajouterRecettes(reponse: Record<string, any>, phrase: string): Promise<Record<string, any>> {
+/**
+ * Une copie de la réponse de l'exposeur où les recettes déchiffrées sont ajoutées à `ca_reel`, et à `ca` si `dans_ca`.
+ * null si la phrase n'est pas la bonne.
+ */
+export async function ajouterRecettes(reponse: Record<string, any>, phrase: string): Promise<Record<string, any> | null> {
 	const { cle: sel, secrets } = verifier(reponse);
 	const cle = await deriver(phrase, sel);
 	const copie = { ...reponse };
@@ -59,7 +62,7 @@ export async function ajouterRecettes(reponse: Record<string, any>, phrase: stri
 		try {
 			clair = await ouvrir(cle, s.payload);
 		} catch {
-			throw new Error("phrase des recettes incorrecte");
+			return null;
 		}
 		const montant = euros(clair);
 		// Le message s'ouvre (la phrase est bonne) mais ne contient pas deux montants : une recette abîmée, pas la phrase.

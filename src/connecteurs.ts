@@ -136,10 +136,18 @@ async function json(app: App, c: Connecteur, cle: string, f: Fenetre): Promise<V
 	let reponse = res.json;
 	if (reponse?.cle && reponse.secrets?.length) {
 		const phrase = c.secretPhrase ? app.secretStorage.getSecret(c.secretPhrase) : null;
-		if (!phrase) throw new Error(`${c.id} : phrase des recettes absente du coffre`);
-		reponse = await ajouterRecettes(reponse, phrase).catch((e: Error) => {
-			throw new Error(`${c.id} : ${e.message}`);
-		});
+		const ouverte = phrase
+			? await ajouterRecettes(reponse, phrase).catch((e: Error) => {
+					throw new Error(`${c.id} : ${e.message}`);
+				})
+			: null;
+		// Sans la bonne phrase, `ca` et `ca_reel` seraient faux : seules ces deux mesures manquent, les autres restent.
+		if (ouverte) reponse = ouverte;
+		else {
+			reponse = { ...reponse };
+			delete reponse.ca;
+			delete reponse.ca_reel;
+		}
 	}
 	const out: Valeurs = {};
 	// Une mesure absente de la réponse ne fait tomber que les objectifs qui la lisent, pas tout le connecteur.

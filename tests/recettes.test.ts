@@ -30,8 +30,8 @@ const reponse = {
 describe("ajouterRecettes", () => {
 	it("déchiffre ce que Fellowship a chiffré : ca_reel toujours, ca seulement si dans_ca", async () => {
 		const r = await ajouterRecettes(reponse, PHRASE);
-		expect(r.ca_reel).toBe(500 + 2830 + 1380 + 100.5);
-		expect(r.ca).toBe(1000 + 2830 + 1380);
+		expect(r?.ca_reel).toBe(500 + 2830 + 1380 + 100.5);
+		expect(r?.ca).toBe(1000 + 2830 + 1380);
 	});
 	it("ne touche pas la réponse d'origine", async () => {
 		await ajouterRecettes(reponse, PHRASE);
@@ -39,30 +39,35 @@ describe("ajouterRecettes", () => {
 	});
 	it("la phrase est normalisée comme côté Fellowship (NFD, espace final)", async () => {
 		const r = await ajouterRecettes(reponse, PHRASE.normalize("NFD") + " ");
-		expect(r.ca_reel).toBe(4810.5);
+		expect(r?.ca_reel).toBe(4810.5);
 	});
 	it("cle ou secrets mal formés : erreur qui le dit, rien n'est compté", async () => {
 		await expect(ajouterRecettes({ ...reponse, cle: { salt: 1, iterations: "x" } }, PHRASE)).rejects.toThrow("illisibles");
 		await expect(ajouterRecettes({ ...reponse, secrets: [{ payload: 3 }] }, PHRASE)).rejects.toThrow("illisibles");
 		await expect(ajouterRecettes({ ...reponse, secrets: "x" }, PHRASE)).rejects.toThrow("illisibles");
 	});
-	it("une mauvaise phrase se dit", async () => {
-		await expect(ajouterRecettes(reponse, "une autre phrase de passe")).rejects.toThrow("phrase des recettes incorrecte");
+	it("une mauvaise phrase rend null", async () => {
+		expect(await ajouterRecettes(reponse, "une autre phrase de passe")).toBeNull();
 	});
 });
 
 describe("connecteur JSON", () => {
-	const c: Connecteur = { id: "fellowship", type: "json", secret: "cle", url: "https://x", mesures: "ca = ca\nca_reel = ca_reel", secretPhrase: "phrase" };
+	const c: Connecteur = { id: "fellowship", type: "json", secret: "cle", url: "https://x", mesures: "ca = ca\nca_reel = ca_reel\ndates = dates", secretPhrase: "phrase" };
 	const app = (coffre: Record<string, string>) => ({ secretStorage: { getSecret: (n: string) => coffre[n] ?? null } }) as never;
 	const f = { debut: "2026-11-01", fin: "2026-11-30" };
 
 	it("ajoute les recettes déchiffrées aux mesures", async () => {
-		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: reponse } as never);
-		expect(await interroger(app({ cle: "k", phrase: PHRASE }), c, f)).toEqual({ ca: 5210, ca_reel: 4810.5 });
+		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { ...reponse, dates: 4 } } as never);
+		expect(await interroger(app({ cle: "k", phrase: PHRASE }), c, f)).toEqual({ ca: 5210, ca_reel: 4810.5, dates: 4 });
 	});
-	it("phrase absente du coffre : erreur lisible", async () => {
-		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: reponse } as never);
-		await expect(interroger(app({ cle: "k" }), c, f)).rejects.toThrow("fellowship : phrase des recettes absente du coffre");
+	it("phrase absente ou fausse : seules les mesures de CA manquent", async () => {
+		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { ...reponse, dates: 4 } } as never);
+		expect(await interroger(app({ cle: "k" }), c, f)).toEqual({ dates: 4 });
+		expect(await interroger(app({ cle: "k", phrase: "une autre phrase de passe" }), c, f)).toEqual({ dates: 4 });
+	});
+	it("cle ou secrets mal formés : le connecteur le dit", async () => {
+		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { ...reponse, secrets: [{ payload: 3 }] } } as never);
+		await expect(interroger(app({ cle: "k", phrase: PHRASE }), c, f)).rejects.toThrow("fellowship : recettes de Fellowship illisibles");
 	});
 	it("sans cle ni secrets, la réponse reste telle quelle (sans phrase requise)", async () => {
 		vi.mocked(requestUrl).mockResolvedValue({ status: 200, json: { ca: 10, ca_reel: 5, cle: null, secrets: [] } } as never);
