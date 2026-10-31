@@ -1,7 +1,8 @@
 import { ItemView, Modal, Notice, TFile, TFolder, setIcon, type App, type WorkspaceLeaf } from "obsidian";
 import { addLogRow, enHaut, illustration, jourLog, parseLog, parseProgramme, prochaineSeance, PROGRAMME, resume, type Exercice, type Ligne } from "./entrainement";
 import { checkTask, taskLabel } from "./etat";
-import { aujourdhui, basculer, chiffre, dateCourte, fenetre, moisDe, parsePlan, position, positionFin, type Ligne as LigneDePlan, type Plan } from "./plan";
+import { evaluer, interroger, type Valeurs } from "./connecteurs";
+import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, fenetre, moisDe, nombre, palier, parsePlan, periodeDe, position, positionFin, type Fenetre, type Ligne as LigneDePlan, type Objectif, type Plan } from "./plan";
 import { buildHome, splitEmoji, type Domaine, type Link, type Metier, type Paquet, type Quotidien } from "./model";
 import { DEFAULT_SETTINGS, importImage, pickImage } from "./settings";
 import { SouvenirModal } from "./souvenir";
@@ -15,6 +16,9 @@ export class AccueilView extends ItemView {
 	private page: "accueil" | "vision" | "entrainement" | "timeline" = "accueil";
 	/** Le projet choisi sur la Timeline ; sans choix, tous. */
 	private projet: string | null = null;
+	/** Les mesures lues, par expression et fenêtre : jamais écrites dans le vault. */
+	private mesures = new Map<string, { quand: number; valeur?: number; erreur?: string }>();
+	private enCours = new Set<string>();
 	/** La séance choisie dans l'onglet Entraînement ; sans choix, la prochaine. */
 	private seance?: number | "regles";
 	/** La tâche tirée au mélange, par _État.md. Valable le jour du tirage : le lendemain, chaque paquet repart de sa priorité. */
@@ -333,20 +337,15 @@ export class AccueilView extends ItemView {
 		const objectifs = vus.flatMap((p) => p.objectifs.map((o) => ({ p, o })));
 		if (objectifs.length) {
 			const s = this.section(root, ++n, "Objectifs", "ce qu’on vise");
-			const grid = s.createDiv("accueil-objectifs");
-			for (const { p, o } of objectifs) {
-				const card = grid.createDiv("accueil-objectif");
-				if (o.fait) card.addClass("is-done");
-				card.createDiv("accueil-filet");
-				card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
-				const { valeur, unite } = chiffre(o.cible ?? "à fixer");
-				const cible = card.createDiv("accueil-objectif-cible");
-				cible.createSpan({ cls: "accueil-objectif-valeur", text: valeur });
-				if (unite) cible.createSpan({ cls: "accueil-objectif-unite", text: unite });
-				const sous = [o.echeance && `d’ici au ${dateCourte(o.echeance)}`, projets.length > 1 && !this.projet && p.projet].filter(Boolean).join(" · ");
-				if (sous) card.createDiv({ cls: "accueil-muted", text: sous });
-				card.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));
+			if (objectifs.some(({ o }) => o.mesure)) {
+				const relire = s.querySelector(".accueil-section-head")!.createSpan({ cls: "accueil-caps accueil-relire", text: "↻ relire" });
+				relire.addEventListener("click", () => {
+					this.mesures.clear();
+					this.render();
+				});
 			}
+			const grid = s.createDiv("accueil-objectifs");
+			for (const { p, o } of objectifs) this.objectif(grid, p, o, projets.length > 1 && !this.projet);
 		}
 		const f = fenetre(vus);
 		if (!f) return;
@@ -373,6 +372,80 @@ export class AccueilView extends ItemView {
 			for (const j of p.jalons) this.ligneDeFrise(frise, p, j, f);
 		}
 		frise.createDiv({ cls: "accueil-frise-legende accueil-muted", text: "◇ tâche · ◆ jalon (#jalon) · ▬ période (🛫 → 📅) · la case coche la ligne dans la note · un clic sur le texte ouvre la note" });
+	}
+
+	/**
+	 * Une carte d'objectif. Avec une mesure : l'atteint en grand, face au palier du moment, et une barre.
+	 * Sans mesure : le palier seul. Maquette Figma 97:140.
+	 */
+	private objectif(grid: HTMLElement, p: Plan, o: Objectif, avecProjet: boolean) {
+		const card = grid.createDiv("accueil-objectif");
+		if (o.fait) card.addClass("is-done");
+		card.createDiv("accueil-filet");
+		card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
+		const jour = aujourdhui();
+		const pal = palier(o, p, jour);
+		const moment = pal?.mois ? ` en ${pal.mois}` : "";
+		const ligne = card.createDiv("accueil-objectif-cible");
+		const grand = (texte: string) => ligne.createSpan({ cls: "accueil-objectif-valeur", text: texte });
+		const petit = (texte: string, cls = "") => ligne.createSpan({ cls: `accueil-objectif-unite ${cls}`, text: texte });
+		if (o.mesure && pal) {
+			const m = this.mesurer(o.mesure, bornes(periodeDe(o), jour, p));
+			if (m?.erreur) {
+				grand("—");
+				petit(m.erreur, "accueil-red");
+			} else if (m?.valeur === undefined) {
+				grand("…");
+				petit(`sur ${pal.valeur}${moment}`);
+			} else {
+				const atteint = pal.valeur.trim().endsWith("%") && o.mesure.includes("/") ? m.valeur * 100 : m.valeur;
+				grand(commeCible(atteint, pal.valeur));
+				petit(`sur ${pal.valeur}${moment}`);
+				const vise = nombre(pal.valeur);
+				if (vise) {
+					const barre = card.createDiv("accueil-objectif-barre").createDiv();
+					barre.style.width = `${Math.min(atteint / vise, 1) * 100}%`;
+					if (atteint >= vise) card.addClass("is-atteint");
+				}
+			}
+		} else {
+			const { valeur, unite } = chiffre(pal?.valeur ?? o.cible ?? "à fixer");
+			grand(valeur);
+			if (unite || moment) petit([unite, moment.trim()].filter(Boolean).join(" "));
+		}
+		const finale = pal && pal.valeur !== o.cible && o.cible;
+		const sous = [o.echeance && `d’ici au ${dateCourte(o.echeance)}`, finale, avecProjet && p.projet].filter(Boolean).join(" · ");
+		if (sous) card.createDiv({ cls: "accueil-muted", text: sous });
+		card.addEventListener("click", () => this.ouvrirA(p.path, o.ligne));
+	}
+
+	/**
+	 * La valeur d'une mesure sur une fenêtre, gardée quinze minutes en mémoire. Absente ou périmée : lue en arrière-plan,
+	 * puis la page se redessine. Rend ce qu'on a en attendant.
+	 */
+	private mesurer(expression: string, f: Fenetre): { valeur?: number; erreur?: string } | undefined {
+		const cle = `${expression}|${f.debut}|${f.fin}`;
+		const connu = this.mesures.get(cle);
+		if ((connu && Date.now() - connu.quand < QUINZE_MINUTES) || this.enCours.has(cle)) return connu;
+		this.enCours.add(cle);
+		const connecteurs = this.plugin.settings.connecteurs ?? [];
+		const lus = new Map<string, Promise<Valeurs>>();
+		const lire = async (id: string, mesure: string) => {
+			const c = connecteurs.find((x) => x.id === id);
+			if (!c) throw new Error(`connecteur « ${id} » inconnu`);
+			if (!lus.has(id)) lus.set(id, interroger(this.app, c, f));
+			const v = (await lus.get(id)!)[mesure];
+			if (v === undefined) throw new Error(`${id} ne fournit pas « ${mesure} »`);
+			return v;
+		};
+		evaluer(expression, lire)
+			.then((valeur) => this.mesures.set(cle, { quand: Date.now(), valeur }))
+			.catch((e: Error) => this.mesures.set(cle, { quand: Date.now(), erreur: e.message }))
+			.finally(() => {
+				this.enCours.delete(cle);
+				if (this.page === "timeline") this.render();
+			});
+		return connu;
 	}
 
 	private ligneDeFrise(frise: HTMLElement, p: Plan, j: LigneDePlan, f: { debut: string; fin: string }) {
@@ -539,6 +612,8 @@ function champ(parent: HTMLElement, unite: string, mode: string, value = ""): HT
 }
 
 const today = () => new Date().toDateString();
+
+const QUINZE_MINUTES = 15 * 60 * 1000;
 
 const pct = (x: number) => `${(x * 100).toFixed(3)}%`;
 

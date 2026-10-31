@@ -21,7 +21,17 @@ export interface Ligne {
 export interface Objectif extends Ligne {
 	nom: string;
 	cible?: string;
+	/** `[mesure:: boutique.ca + fellowship.ca]` : ce que lisent les connecteurs. */
+	mesure?: string;
+	/** `[depart:: 4 000 €]` : la cible du premier mois ; elle monte ensuite jusqu'à la cible finale. */
+	depart?: string;
+	/** `[periode:: mois|semaine|trimestre|plan]` ; sans champ, devinée par le nom et l'unité. */
+	periode?: Periode;
+	/** Les mois forcés à la main, sous la ligne : `- déc. : 12 000 €`, rangés par AAAA-MM une fois le plan lu. */
+	forces: { mois: string; valeur: string }[];
 }
+
+export type Periode = "mois" | "semaine" | "trimestre" | "plan";
 
 export interface Plan {
 	path: string;
@@ -37,6 +47,12 @@ const DATE = "(\\d{4}-\\d{2}-\\d{2})";
 const ECHEANCE = new RegExp(`📅\\s*${DATE}`);
 const DEBUT = new RegExp(`🛫\\s*${DATE}`);
 const JALON = /(^|\s)#jalon\b/;
+/** Champ inline au format Dataview : `[nom:: valeur]`. */
+const INLINE = /\[[\w-]+::[^\]]*\]/g;
+
+function champInline(contenu: string, nom: string): string | undefined {
+	return contenu.match(new RegExp(`\\[${nom}::\\s*([^\\]]*)\\]`))?.[1].trim() || undefined;
+}
 
 /** Une note est un plan si son en-tête porte `type: plan`. */
 export function estPlan(md: string): boolean {
@@ -56,20 +72,34 @@ export function parsePlan(md: string, path: string): Plan {
 			section = nom.startsWith("objectif") ? "objectifs" : nom.startsWith("jalon") ? "jalons" : null;
 			return;
 		}
+		const sous = l.match(/^\s+[-*]\s+([^:]+?)\s*:\s*(.+)$/);
+		if (sous && section === "objectifs" && plan.objectifs.length) {
+			plan.objectifs[plan.objectifs.length - 1].forces.push({ mois: sous[1].trim(), valeur: sous[2].trim() });
+			return;
+		}
 		const c = l.match(CASE);
 		if (!c || !section) return;
 		const ligne = lireLigne(c[2], i, c[1] !== " ");
 		if (section === "jalons") plan.jalons.push(ligne);
 		else {
 			const [nom, ...cible] = ligne.texte.split(" : ");
-			plan.objectifs.push({ ...ligne, nom: nom.trim(), cible: cible.join(" : ").trim() || undefined });
+			const periode = champInline(c[2], "periode");
+			plan.objectifs.push({
+				...ligne,
+				nom: nom.trim(),
+				cible: cible.join(" : ").trim() || undefined,
+				mesure: champInline(c[2], "mesure"),
+				depart: champInline(c[2], "depart"),
+				periode: periode === "mois" || periode === "semaine" || periode === "trimestre" || periode === "plan" ? periode : undefined,
+				forces: [],
+			});
 		}
 	});
 	return plan;
 }
 
 function lireLigne(contenu: string, ligne: number, fait: boolean): Ligne {
-	const texte = contenu.replace(ECHEANCE, "").replace(DEBUT, "").replace(JALON, " ").replace(/\s+/g, " ").trim();
+	const texte = contenu.replace(ECHEANCE, "").replace(DEBUT, "").replace(JALON, " ").replace(INLINE, " ").replace(/\s+/g, " ").trim();
 	return { texte, ligne, fait, debut: contenu.match(DEBUT)?.[1], echeance: contenu.match(ECHEANCE)?.[1], jalon: JALON.test(contenu) };
 }
 
@@ -159,3 +189,86 @@ export function chiffre(cible: string): { valeur: string; unite?: string } {
 	if (!m) return { valeur: cible };
 	return { valeur: m[1].trim(), unite: m[2].trim() || undefined };
 }
+
+/** « 10 000 € » → 10000, « 30 % » → 30, « 50 par week-end » → 50. Sans chiffre en tête : null. */
+export function nombre(texte: string): number | null {
+	const v = chiffre(texte).valeur.replace(/[^\d,.]/g, "").replace(",", ".");
+	return v && /\d/.test(v) ? Number(v) : null;
+}
+
+/** Écrit `n` sur le modèle de `cible` : même suffixe (€, %), espaces des milliers. */
+export function commeCible(n: number, cible: string): string {
+	const { valeur } = chiffre(cible);
+	const suffixe = valeur.match(/\s?(%|k€|€)$/)?.[0] ?? "";
+	const arrondi = Math.abs(n) >= 1000 ? Math.round(n / 10) * 10 : Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+	return arrondi.toLocaleString("fr-FR").replace(/\u202f|\u00a0/g, " ") + suffixe;
+}
+
+/** La période d'un objectif : son champ, sinon « par mois », « par semaine » ou « par week-end » dans le nom ou l'unité, sinon tout le plan. */
+export function periodeDe(o: Objectif): Periode {
+	if (o.periode) return o.periode;
+	const t = `${o.nom} ${o.cible ?? ""}`.toLowerCase();
+	if (/trois mois|3 mois|trimestre/.test(t)) return "trimestre";
+	if (/par mois|\/\s?mois/.test(t)) return "mois";
+	if (/semaine|week-end/.test(t)) return "semaine";
+	return "plan";
+}
+
+/** Les bornes de la période, au jour `jour` (AAAA-MM-JJ). */
+export function bornes(periode: Periode, jour: string, plan: Plan): Fenetre {
+	if (periode === "mois") {
+		const [a, m] = jour.split("-").map(Number);
+		return { debut: jour.slice(0, 8) + "01", fin: iso(new Date(Date.UTC(a, m, 0))) };
+	}
+	if (periode === "semaine") return { debut: iso(new Date(Date.parse(jour) - 6 * 864e5)), fin: jour };
+	if (periode === "trimestre") return { debut: iso(new Date(Date.parse(jour) - 89 * 864e5)), fin: jour };
+	return { debut: plan.debut ?? jour, fin: jour };
+}
+
+export interface Palier {
+	/** La cible du moment, au format de la cible finale. */
+	valeur: string;
+	/** « novembre », ou null quand c'est la cible finale. */
+	mois: string | null;
+}
+
+/**
+ * La cible du mois de `jour`. Un mois forcé gagne ; sinon, avec un départ, une ligne droite du premier mois du plan
+ * (le départ) au mois de l'échéance (la cible finale) ; sinon la cible finale seule.
+ */
+export function palier(o: Objectif, plan: Plan, jour: string): Palier | null {
+	if (!o.cible) return null;
+	const nomMois = (ym: string) => new Date(ym + "-01T00:00:00Z").toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" });
+	const debut = (plan.debut ?? jour).slice(0, 7);
+	const fin = (o.echeance ?? plan.fin ?? jour).slice(0, 7);
+	const ici = jour.slice(0, 7);
+	const force = o.forces.find((f) => moisDuNom(f.mois, debut, fin) === ici);
+	if (force) return { valeur: force.valeur, mois: nomMois(ici) };
+	const a = o.depart ? nombre(o.depart) : null;
+	const b = nombre(o.cible);
+	if (a === null || b === null || ici >= fin) return { valeur: o.cible, mois: periodeDe(o) === "mois" ? nomMois(ici) : null };
+	const total = ecartMois(debut, fin);
+	const rang = Math.max(ecartMois(debut, ici), 0);
+	return { valeur: commeCible(a + ((b - a) * rang) / Math.max(total, 1), o.cible), mois: nomMois(ici) };
+}
+
+/** « déc. », « décembre » → l'AAAA-MM de ce mois dans [debut, fin] (AAAA-MM). */
+export function moisDuNom(nom: string, debut: string, fin: string): string | undefined {
+	const cle = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f.]/g, "").trim();
+	for (let ym = debut; ym <= fin; ym = moisSuivant(ym)) {
+		const d = new Date(ym + "-01T00:00:00Z");
+		const noms = [{ month: "long" }, { month: "short" }].map((o) => cle(d.toLocaleDateString("fr-FR", { ...(o as Intl.DateTimeFormatOptions), timeZone: "UTC" })));
+		if (noms.includes(cle(nom))) return ym;
+	}
+	return undefined;
+}
+
+const moisSuivant = (ym: string) => {
+	const [a, m] = ym.split("-").map(Number);
+	return iso(new Date(Date.UTC(a, m, 1))).slice(0, 7);
+};
+const ecartMois = (a: string, b: string) => {
+	const [ya, ma] = a.split("-").map(Number);
+	const [yb, mb] = b.split("-").map(Number);
+	return (yb - ya) * 12 + (mb - ma);
+};

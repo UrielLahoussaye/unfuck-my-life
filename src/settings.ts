@@ -1,10 +1,12 @@
-import { Notice, PluginSettingTab, Setting, TFolder, type App } from "obsidian";
+import { Notice, PluginSettingTab, SecretComponent, Setting, TFolder, type App } from "obsidian";
+import { interroger, MESURES_SHOPIFY, type Connecteur } from "./connecteurs";
+import { aujourdhui, bornes } from "./plan";
 import { buildHome, type Settings } from "./model";
 import { toTree } from "./vaultTree";
 import { ImageSuggest } from "./imageSuggest";
 import type AccueilPlugin from "./main";
 
-export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [], vision: "Vision.canvas" };
+export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [], vision: "Vision.canvas", connecteurs: [] };
 
 export class AccueilSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: AccueilPlugin) {
@@ -50,6 +52,8 @@ export class AccueilSettingTab extends PluginSettingTab {
 				}),
 			);
 
+		this.connecteurs(containerEl);
+
 		new Setting(containerEl)
 			.setName("Cartes")
 			.setHeading()
@@ -83,6 +87,82 @@ export class AccueilSettingTab extends PluginSettingTab {
 						),
 				);
 		}
+	}
+
+	/** Les sources des objectifs : une ligne par connecteur, ses champs selon son type, la clé dans le coffre d'Obsidian. */
+	private connecteurs(el: HTMLElement) {
+		const settings = this.plugin.settings;
+		const liste = (settings.connecteurs ??= []);
+		new Setting(el)
+			.setName("Connecteurs")
+			.setHeading()
+			.setDesc("D'où viennent les chiffres atteints des objectifs. Dans la note du plan : [mesure:: identifiant.mesure]. Les clés restent dans le coffre d'Obsidian, sur cet appareil.");
+		const save = () => this.plugin.saveSettings();
+		liste.forEach((c, i) => {
+			const bloc = el.createDiv("accueil-reglage-connecteur");
+			new Setting(bloc)
+				.setName(c.id || "Nouveau connecteur")
+				.addText((t) => t.setPlaceholder("identifiant").setValue(c.id).onChange(async (v) => {
+					c.id = v.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+					await save();
+				}))
+				.addDropdown((dd) => dd.addOption("shopify", "Shopify").addOption("json", "Requête JSON").setValue(c.type).onChange(async (v) => {
+					c.type = v as Connecteur["type"];
+					await save();
+					this.display();
+				}))
+				.addButton((b) => b.setButtonText("Tester").onClick(async () => {
+					try {
+						const v = await interroger(this.app, c, bornes("mois", aujourdhui(), { path: "", projet: "", objectifs: [], jalons: [] }));
+						new Notice(`${c.id}, ce mois-ci : ${Object.entries(v).map(([k, n]) => `${k} = ${n}`).join(", ") || "aucune mesure"}`);
+					} catch (e) {
+						new Notice(`${c.id} : ${(e as Error).message}`);
+					}
+				}))
+				.addExtraButton((b) => b.setIcon("trash").setTooltip("Retirer").onClick(async () => {
+					liste.splice(i, 1);
+					await save();
+					this.display();
+				}));
+			new Setting(bloc).setName("Clé").setDesc("Le secret, choisi ou créé dans le coffre d'Obsidian.").addComponent((cel) =>
+				new SecretComponent(this.app, cel).setValue(c.secret).onChange(async (v) => {
+					c.secret = v ?? "";
+					await save();
+				}),
+			);
+			const texte = (nom: string, desc: string, cle: "domaine" | "url" | "entete" | "prefixe", placeholder = "") =>
+				new Setting(bloc).setName(nom).setDesc(desc).addText((t) => t.setPlaceholder(placeholder).setValue(c[cle] ?? "").onChange(async (v) => {
+					c[cle] = v;
+					await save();
+				}));
+			if (c.type === "shopify") {
+				texte("Domaine", `Mesures fournies : ${MESURES_SHOPIFY.join(", ")}. Jeton Admin avec la lecture des commandes.`, "domaine", "ma-boutique.myshopify.com");
+				return;
+			}
+			texte("Adresse", "{debut} et {fin} deviennent les dates de la période (AAAA-MM-JJ).", "url", "https://…");
+			new Setting(bloc).setName("Méthode").addDropdown((dd) => dd.addOption("GET", "GET").addOption("POST", "POST").setValue(c.methode ?? "GET").onChange(async (v) => {
+				c.methode = v as "GET" | "POST";
+				await save();
+				this.display();
+			}));
+			if (c.methode === "POST") {
+				new Setting(bloc).setName("Corps").setDesc("JSON envoyé, mêmes remplacements.").addTextArea((t) => t.setPlaceholder('{"debut":"{debut}","fin":"{fin}"}').setValue(c.corps ?? "").onChange(async (v) => {
+					c.corps = v;
+					await save();
+				}));
+			}
+			texte("En-tête de la clé", "Par défaut Authorization.", "entete", "Authorization");
+			texte("Avant la clé", "Par défaut « Bearer ».", "prefixe", "Bearer ");
+			new Setting(bloc).setName("Mesures").setDesc("Une par ligne : nom = chemin dans la réponse (data.ca, 0.total).").addTextArea((t) => t.setPlaceholder("ca = ca\nca_projete = ca_projete").setValue(c.mesures ?? "").onChange(async (v) => {
+				c.mesures = v;
+				await save();
+			}));
+		});
+		new Setting(el).addButton((b) => b.setButtonText("+ Ajouter un connecteur").onClick(async () => {
+			liste.push({ id: "", type: "json", secret: "" });
+			await save();
+			this.display();
+		}));
 	}
 }
 

@@ -1,4 +1,5 @@
 import { PROGRAMME } from "./entrainement";
+import type { Connecteur } from "./connecteurs";
 import { extractTasks } from "./etat";
 
 /** Arbre du vault, réduit à ce que l'accueil lit. */
@@ -22,6 +23,8 @@ export interface Settings {
 	masques: string[];
 	/** Canvas du tableau de vision. */
 	vision?: string;
+	/** Les sources des chiffres atteints des objectifs. */
+	connecteurs?: Connecteur[];
 }
 
 export interface Link {

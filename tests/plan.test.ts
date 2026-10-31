@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aujourdhui, basculer, chiffre, dateCourte, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe } from "../src/plan";
+import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe } from "../src/plan";
 
 const note = [
 	"---",
@@ -103,5 +103,52 @@ describe("chiffre", () => {
 		expect(chiffre("30 %")).toEqual({ valeur: "30 %", unite: undefined });
 		expect(chiffre("12 000 € de CA")).toEqual({ valeur: "12 000 €", unite: "de CA" });
 		expect(chiffre("à fixer")).toEqual({ valeur: "à fixer" });
+	});
+});
+
+describe("objectifs mesurés et paliers", () => {
+	const md = [
+		"---", "type: plan", "debut: 2026-11-01", "fin: 2027-04-30", "---",
+		"## Objectifs",
+		"- [ ] CA par mois : 10 000 € 📅 2027-04-30 [mesure:: boutique.ca + fellowship.ca]",
+		"- [ ] Ventes en ligne par mois : 30 📅 2027-04-30 [depart:: 15] [mesure:: boutique.commandes]",
+		"\t- déc. : 40",
+		"- [ ] Activations : 30 % [periode:: semaine] [mesure:: hub.activations / hub.ventes_stand]",
+		"- [ ] Livre écrit : 1",
+	].join("\n");
+	const p = parsePlan(md, "1. X/Plan.md");
+	const [ca, ventes, activ, livre] = p.objectifs;
+	it("lit les champs inline et les retire du texte", () => {
+		expect([ca.nom, ca.cible, ca.mesure]).toEqual(["CA par mois", "10 000 €", "boutique.ca + fellowship.ca"]);
+		expect([ventes.depart, ventes.forces]).toEqual(["15", [{ mois: "déc.", valeur: "40" }]]);
+		expect([activ.cible, activ.periode]).toEqual(["30 %", "semaine"]);
+	});
+	it("lit les nombres et les réécrit au format de la cible", () => {
+		expect([nombre("10 000 €"), nombre("30 %"), nombre("50 par week-end"), nombre("à fixer")]).toEqual([10000, 30, 50, null]);
+		expect([commeCible(6243, "10 000 €"), commeCible(22.4, "30 %"), commeCible(17.5, "30")]).toEqual(["6 240 €", "22 %", "18"]);
+	});
+	it("devine la période", () => {
+		expect([periodeDe(ca), periodeDe(activ), periodeDe(livre)]).toEqual(["mois", "semaine", "plan"]);
+		expect(periodeDe({ ...livre, nom: "Inscriptions au stand", cible: "50 par week-end" })).toBe("semaine");
+	});
+	it("donne les bornes de la période", () => {
+		expect(bornes("mois", "2026-11-14", p)).toEqual({ debut: "2026-11-01", fin: "2026-11-30" });
+		expect(bornes("semaine", "2026-11-14", p)).toEqual({ debut: "2026-11-08", fin: "2026-11-14" });
+		expect(bornes("trimestre", "2026-11-14", p)).toEqual({ debut: "2026-08-17", fin: "2026-11-14" });
+		expect(periodeDe({ ...livre, nom: "CA sur trois mois glissants" })).toBe("trimestre");
+		expect(bornes("plan", "2026-11-14", p)).toEqual({ debut: "2026-11-01", fin: "2026-11-14" });
+	});
+	it("tient la cible chaque mois sans départ : la durabilité", () => {
+		expect(palier(ca, p, "2026-11-14")).toEqual({ valeur: "10 000 €", mois: "novembre" });
+		expect(palier(livre, p, "2026-11-14")).toEqual({ valeur: "1", mois: null });
+	});
+	it("monte du départ à la cible, un mois forcé gagne", () => {
+		expect(palier(ventes, p, "2026-11-14")).toEqual({ valeur: "15", mois: "novembre" });
+		expect(palier(ventes, p, "2026-12-02")).toEqual({ valeur: "40", mois: "décembre" });
+		expect(palier(ventes, p, "2027-02-10")).toEqual({ valeur: "24", mois: "février" });
+		expect(palier(ventes, p, "2027-04-01")?.valeur).toBe("30");
+	});
+	it("retrouve un mois par son nom dans la fenêtre", () => {
+		expect([moisDuNom("Décembre", "2026-11", "2027-04"), moisDuNom("févr.", "2026-11", "2027-04"), moisDuNom("juin", "2026-11", "2027-04")]).toEqual(["2026-12", "2027-02", undefined]);
 	});
 });

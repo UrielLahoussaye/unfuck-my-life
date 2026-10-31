@@ -449,3 +449,9 @@
 	.accueil-frise { --label: 48%; }
 	.accueil-frise-label { font-size: 13px; }
 }
+.accueil .accueil-relire { margin-left: auto; font-size: 11px; color: var(--accueil-muted); cursor: pointer; }
+.accueil .accueil-relire:hover { color: var(--accueil-red); }
+.accueil-objectif-barre { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--accueil-line); overflow: hidden; }
+.accueil-objectif-barre > div { height: 100%; border-radius: 2px; background: var(--accueil-ink); opacity: 0.7; }
+.accueil-objectif.is-atteint .accueil-objectif-barre > div { background: var(--accueil-red); opacity: 1; }
+.accueil-reglage-connecteur { margin: 8px 0 16px; padding: 4px 16px; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
