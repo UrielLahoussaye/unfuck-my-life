@@ -17,7 +17,7 @@ export const VIEW_TYPE_ACCUEIL = "accueil-view";
 type Mesure = { quand: number; valeur?: number; erreur?: string; parts?: { nom: string; valeur: number }[] };
 export class AccueilView extends ItemView {
 	private page: "accueil" | "vision" | "entrainement" | "timeline" = "accueil";
-	/** Le projet choisi sur la Timeline ; sans choix, tous. */
+	/** Le projet choisi sur la page Plan ; sans choix, tous. */
 	private projet: string | null = null;
 	/** Les mesures lues, par expression et fenêtre : jamais écrites dans le vault. */
 	private mesures = new Map<string, Mesure>();
@@ -84,7 +84,7 @@ export class AccueilView extends ItemView {
 
 	private tabs(root: HTMLElement) {
 		const bar = root.createDiv("accueil-tabs");
-		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"], ["entrainement", "Entraînement"], ["timeline", "Timeline"]] as const) {
+		for (const [page, label] of [["accueil", "Accueil"], ["vision", "Vision"], ["entrainement", "Entraînement"], ["timeline", "Plan"]] as const) {
 			const tab = bar.createDiv({ cls: "accueil-tab accueil-caps", text: label });
 			if (page === this.page) tab.addClass("is-active");
 			tab.addEventListener("click", () => {
