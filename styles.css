@@ -461,4 +461,8 @@
 .accueil-objectif-ecart svg { width: 12px; height: 12px; stroke-width: 2.2; }
 .accueil-objectif-ecart.is-dessus { color: var(--accueil-green); background: rgba(111, 175, 122, 0.14); }
 .accueil-objectif-ecart.is-dessous { color: var(--accueil-red); background: rgba(189, 71, 71, 0.14); }
-.accueil-reglage-connecteur { margin: 8px 0 16px; padding: 4px 16px; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
+.accueil-reglage-connecteur { margin: 8px 0; padding: 0 16px; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
+.accueil-reglage-connecteur > summary { display: flex; align-items: baseline; gap: 12px; padding: 12px 0; cursor: pointer; }
+.accueil-reglage-connecteur[open] > summary { border-bottom: 1px solid var(--background-modifier-border); }
+.accueil-reglage-connecteur-nom { font-weight: 600; }
+.accueil-reglage-connecteur-info { color: var(--text-muted); font-size: var(--font-ui-small); }

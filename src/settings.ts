@@ -1,5 +1,5 @@
 import { Notice, PluginSettingTab, SecretComponent, Setting, TFolder, type App } from "obsidian";
-import { interroger, MESURES_SHOPIFY, type Connecteur } from "./connecteurs";
+import { interroger, lireMesures, MESURES_SHOPIFY, type Connecteur } from "./connecteurs";
 import { aujourdhui, bornes, renommer } from "./plan";
 import { buildHome, type Settings } from "./model";
 import { toTree } from "./vaultTree";
@@ -9,6 +9,8 @@ import type AccueilPlugin from "./main";
 export const DEFAULT_SETTINGS: Settings = { accroches: {}, images: {}, quotidien: null, masques: [], vision: "Vision.canvas", connecteurs: [] };
 
 export class AccueilSettingTab extends PluginSettingTab {
+	/** Les connecteurs dépliés, gardés d'un affichage à l'autre (chaque changement de type redessine la page). */
+	private ouverts = new Set<number>();
 	constructor(app: App, private plugin: AccueilPlugin) {
 		super(app, plugin);
 	}
@@ -113,9 +115,16 @@ export class AccueilSettingTab extends PluginSettingTab {
 			.setDesc("D'où viennent les chiffres atteints des objectifs. Dans la note du plan : [mesure:: identifiant.mesure]. Les clés restent dans le coffre d'Obsidian, sur cet appareil.");
 		const save = () => this.plugin.saveSettings();
 		liste.forEach((c, i) => {
-			const bloc = el.createDiv("accueil-reglage-connecteur");
+			// Replié sur une ligne tant qu'on ne l'édite pas ; un connecteur sans nom s'ouvre de lui-même.
+			const bloc = el.createEl("details", { cls: "accueil-reglage-connecteur" });
+			bloc.open = this.ouverts.has(i) || !c.id;
+			bloc.addEventListener("toggle", () => (bloc.open ? this.ouverts.add(i) : this.ouverts.delete(i)));
+			const resume = bloc.createEl("summary");
+			resume.createSpan({ cls: "accueil-reglage-connecteur-nom", text: c.id || "Nouveau connecteur" });
+			const mesures = c.type === "shopify" ? MESURES_SHOPIFY : lireMesures(c.mesures).map(([nom]) => nom);
+			resume.createSpan({ cls: "accueil-reglage-connecteur-info", text: [c.type === "shopify" ? "Shopify" : "Requête JSON", mesures.join(", ")].filter(Boolean).join(" · ") });
 			new Setting(bloc)
-				.setName(c.id || "Nouveau connecteur")
+				.setName("Identifiant")
 				.addText((t) => {
 					t.setPlaceholder("identifiant").setValue(c.id);
 					// À la sortie du champ seulement : renommer à chaque touche réécrirait les plans lettre par lettre.
@@ -143,6 +152,7 @@ export class AccueilSettingTab extends PluginSettingTab {
 				}))
 				.addExtraButton((b) => b.setIcon("trash").setTooltip("Retirer").onClick(async () => {
 					liste.splice(i, 1);
+					this.ouverts.clear();
 					await save();
 					this.display();
 				}));
@@ -183,6 +193,7 @@ export class AccueilSettingTab extends PluginSettingTab {
 		});
 		new Setting(el).addButton((b) => b.setButtonText("+ Ajouter un connecteur").onClick(async () => {
 			liste.push({ id: "", type: "json", secret: "" });
+			this.ouverts.add(liste.length - 1);
 			await save();
 			this.display();
 		}));
