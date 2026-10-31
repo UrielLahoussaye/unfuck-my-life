@@ -471,3 +471,7 @@
 .accueil-reglage-connecteur[open] > summary { border-bottom: 1px solid var(--background-modifier-border); }
 .accueil-reglage-connecteur-nom { font-weight: 600; }
 .accueil-reglage-connecteur-info { color: var(--text-muted); font-size: var(--font-ui-small); }
+
+/* Choisir une image : le champ fichier couvre le bouton */
+.accueil-picker { position: relative; }
+.accueil-picker-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }

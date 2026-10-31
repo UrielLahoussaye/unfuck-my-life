@@ -76,18 +76,14 @@ export class AccueilSettingTab extends PluginSettingTab {
 					t.setPlaceholder("Image de fond").setValue(settings.images[path] ?? "").onChange((v) => store(settings.images, path, v));
 					new ImageSuggest(this.app, t.inputEl, (v) => store(settings.images, path, v));
 				})
-				.addExtraButton((b) =>
-					b
-						.setIcon("image-plus")
-						.setTooltip("Choisir une image sur l'ordinateur")
-						.onClick(() =>
-							pickImage(async (file) => {
-								const target = await importImage(this.app, file);
-								imageInput.value = target;
-								await store(settings.images, path, target);
-							}),
-						),
-				);
+				.addExtraButton((b) => {
+					b.setIcon("image-plus").setTooltip("Choisir une image sur l'ordinateur");
+					pickerOn(b.extraSettingsEl, async (file) => {
+						const target = await importImage(this.app, file);
+						imageInput.value = target;
+						await store(settings.images, path, target);
+					});
+				});
 		}
 	}
 
@@ -228,4 +224,19 @@ export function pickImage(onPick: (file: File) => Promise<void>) {
 		if (file) onPick(file).then(() => new Notice(`Image importée : ${file.name}`)).catch((e) => new Notice(`Image non importée : ${e.message}`));
 	});
 	input.click();
+}
+
+/**
+ * Pose un champ fichier invisible sur tout l'élément : le clic de la personne tombe directement dessus
+ * et ouvre le sélecteur du système. Plus sûr qu'un clic simulé, qu'Electron ignore parfois.
+ */
+export function pickerOn(el: HTMLElement, onPick: (file: File) => Promise<void>) {
+	el.addClass("accueil-picker");
+	const input = el.createEl("input", { cls: "accueil-picker-input", attr: { type: "file", accept: "image/*", "aria-label": "Choisir une image" } });
+	input.addEventListener("click", (e) => e.stopPropagation());
+	input.addEventListener("change", () => {
+		const file = input.files?.[0];
+		input.value = "";
+		if (file) onPick(file).then(() => new Notice(`Image importée : ${file.name}`)).catch((e) => new Notice(`Image non importée : ${e.message}`));
+	});
 }
