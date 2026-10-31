@@ -128,7 +128,14 @@ async function json(c: Connecteur, cle: string, f: Fenetre): Promise<Valeurs> {
 	});
 	if (res.status >= 400) throw new Error(`${c.id} : réponse ${res.status}`);
 	const out: Valeurs = {};
-	for (const [nom, chemin] of lireMesures(c.mesures)) out[nom] = suivre(res.json, chemin);
+	// Une mesure absente de la réponse ne fait tomber que les objectifs qui la lisent, pas tout le connecteur.
+	for (const [nom, chemin] of lireMesures(c.mesures)) {
+		try {
+			out[nom] = suivre(res.json, chemin);
+		} catch {
+			// laissée vide : lire() dira « ne fournit pas » sur la seule carte concernée
+		}
+	}
 	return out;
 }
 
