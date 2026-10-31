@@ -394,6 +394,11 @@
 .accueil-objectif-valeur { font-family: var(--accueil-titre); font-size: 52px; line-height: 1; letter-spacing: -0.03em; white-space: nowrap; }
 .accueil-objectif-unite { font-size: 15px; color: var(--accueil-muted); }
 .accueil-objectif.is-done { opacity: 0.5; }
+/* L'image du dossier du plan, fondue à droite comme sur l'Accueil */
+.accueil-objectif.has-image { overflow: hidden; }
+.accueil-objectif.has-image > :not(.accueil-bg):not(.accueil-objectif-ecart) { position: relative; }
+.accueil-objectif.has-image .accueil-bg { opacity: 0.3; }
+.accueil-objectif-ecart { z-index: 1; }
 
 .accueil-frise { --label: 34%; position: relative; }
 .accueil-frise-fond { position: absolute; top: 0; bottom: 0; left: var(--label); right: 0; pointer-events: none; }

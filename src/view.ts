@@ -379,11 +379,12 @@ export class AccueilView extends ItemView {
 
 	/**
 	 * Une carte d'objectif. Avec une mesure : l'atteint en grand, face au palier du moment, et une barre.
-	 * Sans mesure : le palier seul. Maquette Figma 97:140.
+	 * Sans mesure : le palier seul. L'image du dossier du plan en fond, comme sur l'Accueil. Maquette Figma 97:140.
 	 */
 	private objectif(grid: HTMLElement, p: Plan, o: Objectif, avecProjet: boolean) {
 		const card = grid.createDiv("accueil-objectif");
 		if (o.fait) card.addClass("is-done");
+		this.background(card, this.plugin.settings.images?.[p.path.split("/").slice(0, -1).join("/")]);
 		card.createDiv("accueil-filet");
 		card.createDiv({ cls: "accueil-caps accueil-objectif-nom", text: o.nom });
 		const jour = aujourdhui();
