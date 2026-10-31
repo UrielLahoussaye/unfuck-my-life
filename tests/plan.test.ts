@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe } from "../src/plan";
+import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe, renommer } from "../src/plan";
 
 const note = [
 	"---",
@@ -150,5 +150,17 @@ describe("objectifs mesurés et paliers", () => {
 	});
 	it("retrouve un mois par son nom dans la fenêtre", () => {
 		expect([moisDuNom("Décembre", "2026-11", "2027-04"), moisDuNom("févr.", "2026-11", "2027-04"), moisDuNom("juin", "2026-11", "2027-04")]).toEqual(["2026-12", "2027-02", undefined]);
+	});
+});
+
+describe("renommer", () => {
+	it("change le connecteur dans les mesures, et nulle part ailleurs", () => {
+		const md = "- [ ] fellowship.ca : 5 000 € [mesure:: boutique.ca + fellowship.ca] [depart:: fellowship.x]\n- [ ] B [mesure:: fellowship.a / fellowship.b]";
+		expect(renommer(md, "fellowship", "stand")).toBe(
+			"- [ ] fellowship.ca : 5 000 € [mesure:: boutique.ca + stand.ca] [depart:: fellowship.x]\n- [ ] B [mesure:: stand.a / stand.b]",
+		);
+	});
+	it("ne touche pas un connecteur dont le nom finit pareil", () => {
+		expect(renommer("[mesure:: superstand.ca + stand.ca]", "stand", "festivals")).toBe("[mesure:: superstand.ca + festivals.ca]");
 	});
 });

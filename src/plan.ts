@@ -112,6 +112,13 @@ export function basculer(md: string, ligne: number, texte: string): string {
 	return lignes.join("\n");
 }
 
+/** Un connecteur renommé : `ancien.mesure` devient `nouveau.mesure`, dans les champs [mesure:: …] seulement. */
+export function renommer(md: string, ancien: string, nouveau: string): string {
+	if (!ancien || !nouveau || ancien === nouveau) return md;
+	const terme = new RegExp(`(^|[\\s+/])${ancien.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}\\.`, "g");
+	return md.replace(/\[mesure::([^\]]*)\]/g, (_, expr: string) => `[mesure::${expr.replace(terme, `$1${nouveau}.`)}]`);
+}
+
 /** « 1. LE MÉTIER/1. Runes de Chêne/Plan.md » → « Runes de Chêne » : le dossier de la note, sans son numéro. */
 export function projetDe(path: string): string {
 	const dossiers = path.split("/").slice(0, -1);

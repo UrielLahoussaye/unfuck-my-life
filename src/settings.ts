@@ -1,6 +1,6 @@
 import { Notice, PluginSettingTab, SecretComponent, Setting, TFolder, type App } from "obsidian";
 import { interroger, MESURES_SHOPIFY, type Connecteur } from "./connecteurs";
-import { aujourdhui, bornes } from "./plan";
+import { aujourdhui, bornes, renommer } from "./plan";
 import { buildHome, type Settings } from "./model";
 import { toTree } from "./vaultTree";
 import { ImageSuggest } from "./imageSuggest";
@@ -89,6 +89,20 @@ export class AccueilSettingTab extends PluginSettingTab {
 		}
 	}
 
+	/** Un connecteur renommé : les objectifs de tous les plans suivent. */
+	private async renommerDansPlans(ancien: string, nouveau: string) {
+		let n = 0;
+		for (const f of this.app.vault.getMarkdownFiles()) {
+			if (this.app.metadataCache.getFileCache(f)?.frontmatter?.type !== "plan") continue;
+			await this.app.vault.process(f, (md) => {
+				const apres = renommer(md, ancien, nouveau);
+				if (apres !== md) n++;
+				return apres;
+			});
+		}
+		if (n) new Notice(`« ${ancien} » devient « ${nouveau} » dans ${n} plan${n > 1 ? "s" : ""}.`);
+	}
+
 	/** Les sources des objectifs : une ligne par connecteur, ses champs selon son type, la clé dans le coffre d'Obsidian. */
 	private connecteurs(el: HTMLElement) {
 		const settings = this.plugin.settings;
@@ -102,10 +116,18 @@ export class AccueilSettingTab extends PluginSettingTab {
 			const bloc = el.createDiv("accueil-reglage-connecteur");
 			new Setting(bloc)
 				.setName(c.id || "Nouveau connecteur")
-				.addText((t) => t.setPlaceholder("identifiant").setValue(c.id).onChange(async (v) => {
-					c.id = v.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
-					await save();
-				}))
+				.addText((t) => {
+					t.setPlaceholder("identifiant").setValue(c.id);
+					// À la sortie du champ seulement : renommer à chaque touche réécrirait les plans lettre par lettre.
+					t.inputEl.addEventListener("change", async () => {
+						const ancien = c.id;
+						c.id = t.getValue().trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+						t.setValue(c.id);
+						await save();
+						if (ancien && c.id && ancien !== c.id) await this.renommerDansPlans(ancien, c.id);
+						this.display();
+					});
+				})
 				.addDropdown((dd) => dd.addOption("shopify", "Shopify").addOption("json", "Requête JSON").setValue(c.type).onChange(async (v) => {
 					c.type = v as Connecteur["type"];
 					await save();
