@@ -280,9 +280,10 @@ const ecartMois = (a: string, b: string) => {
 	return (yb - ya) * 12 + (mb - ma);
 };
 
-/** L'écart à la cible : « +25 % » au-dessus, sinon la part atteinte (« 37 % »). Sans cible : rien. */
+/** L'écart à la cible, signé comme la flèche : « +25 % » au-dessus, « −23 % » en dessous. Sans cible : rien. */
 export function ecart(atteint: number, vise: number): { texte: string; dessus: boolean } | null {
 	if (!(vise > 0)) return null;
 	const dessus = atteint >= vise;
-	return dessus ? { texte: `+${Math.round((atteint / vise - 1) * 100)} %`, dessus } : { texte: `${Math.round((atteint / vise) * 100)} %`, dessus };
+	const n = Math.round(Math.abs(atteint / vise - 1) * 100);
+	return { texte: `${dessus ? "+" : "−"}${n} %`, dessus };
 }

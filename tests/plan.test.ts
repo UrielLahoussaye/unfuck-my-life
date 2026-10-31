@@ -166,10 +166,10 @@ describe("renommer", () => {
 });
 
 describe("ecart", () => {
-	it("au-dessus : ce qu'on a en plus ; en dessous : la part atteinte", () => {
+	it("signé comme la flèche : ce qu'on a en plus, ou ce qui manque", () => {
 		expect(ecart(6240, 5000)).toEqual({ texte: "+25 %", dessus: true });
 		expect(ecart(5000, 5000)).toEqual({ texte: "+0 %", dessus: true });
-		expect(ecart(11, 30)).toEqual({ texte: "37 %", dessus: false });
+		expect(ecart(11, 30)).toEqual({ texte: "−63 %", dessus: false });
 		expect(ecart(3, 0)).toBeNull();
 	});
 });
