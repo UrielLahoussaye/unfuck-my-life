@@ -58,5 +58,11 @@ export function addTask(markdown: string, task: string): string {
 	return lines.join(eol);
 }
 
+/** `relance: non` dans l'en-tête : un projet qu'on reprend quand on veut, dont l'Accueil ne montre pas les tâches. */
+export function sansRelance(markdown: string): boolean {
+	const entete = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
+	return /^relance:\s*["']?non["']?\s*$/im.test(entete);
+}
+
 /** Ce que la carte affiche d'une tâche : sans le gras du markdown. */
 export const taskLabel = (task: string) => task.replace(/\*\*/g, "");

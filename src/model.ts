@@ -1,6 +1,6 @@
 import { PROGRAMME } from "./entrainement";
 import type { Connecteur } from "./connecteurs";
-import { extractTasks } from "./etat";
+import { extractTasks, sansRelance } from "./etat";
 
 /** Arbre du vault, réduit à ce que l'accueil lit. */
 export interface Node {
@@ -148,7 +148,7 @@ function links(node: Node, hidden: (p: string) => boolean): Link[] {
 }
 
 function paquet(node: Node): Paquet | undefined {
-	const tasks = node.etat ? extractTasks(node.etat) : [];
+	const tasks = node.etat && !sansRelance(node.etat) ? extractTasks(node.etat) : [];
 	return tasks.length ? { etat: `${node.path}/_État.md`, tasks } : undefined;
 }
 

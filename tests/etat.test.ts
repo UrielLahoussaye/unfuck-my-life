@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addTask, checkTask, extractTasks, taskLabel } from "../src/etat";
+import { addTask, checkTask, sansRelance, extractTasks, taskLabel } from "../src/etat";
 
 describe("extractTasks", () => {
 	it("prend les cases non cochées de la section, dans l'ordre, jusqu'au ## suivant", () => {
@@ -45,5 +45,13 @@ describe("addTask", () => {
 	});
 	it("crée la section si elle manque et garde les fins de ligne Windows", () => {
 		expect(addTask("# X\r\nbla\r\n\r\n", "Ça")).toBe("# X\r\nbla\r\n\r\n## Prochaine action\r\n\r\n- [ ] Ça\r\n");
+	});
+});
+
+describe("sansRelance", () => {
+	it("lit `relance: non` dans l'en-tête seulement", () => {
+		expect(sansRelance("---\r\nzone: x\r\nrelance: non\r\n---\r\n# X")).toBe(true);
+		expect(sansRelance("---\nrelance: oui\n---\n")).toBe(false);
+		expect(sansRelance("# X\nrelance: non\n")).toBe(false);
 	});
 });

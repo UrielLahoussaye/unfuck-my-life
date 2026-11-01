@@ -113,6 +113,10 @@ describe("buildHome — Les Domaines", () => {
 		expect(x.sousProjets[1].etat).toBe("2. X/Immobilier/Rose de France/_État.md");
 		expect(x.sousProjetsEnPlus).toBe(0);
 	});
+	it("tait les tâches d'un _État.md marqué `relance: non`", () => {
+		const root = dir("", [dir("2. X", [dir("2. X/JCE", [], "---\nrelance: non\n---\n" + etat("- [ ] Spontané"))])]);
+		expect(buildHome(root, NONE).domaines[0].sousProjets).toEqual([]);
+	});
 	it("masque aussi un domaine entier", () => {
 		const home = buildHome(vault(), { ...NONE, masques: ["4. L'ŒUVRE"] });
 		expect(home.domaines.map((d) => d.titre)).not.toContain("L'Œuvre");
