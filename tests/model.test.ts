@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHome, shouldRefresh, splitEmoji, type Node, type Settings } from "../src/model";
+import { destination, filtrer, buildHome, shouldRefresh, splitEmoji, type Node, type Settings } from "../src/model";
 
 // Arbres fictifs : aucun test ne lit le vault.
 const note = (path: string): Node => ({ name: path.split("/").pop()!.replace(/\.(md|canvas)$/, ""), path, kind: path.endsWith(".canvas") ? "canvas" : "note" });
@@ -171,5 +171,20 @@ describe("buildHome — images de fond", () => {
 		expect(home.metiers[0].image).toBe("img/rdc.jpg");
 		expect(home.metiers[1].image).toBeUndefined();
 		expect(home.domaines[0].image).toBe("img/maison.png");
+	});
+});
+
+describe("destination et filtrer — la fenêtre « Une tâche »", () => {
+	const d = destination("2. LA HOUSSAYE/Immobilier/Rose de France/_État.md");
+	it("lit le nom et le chemin sans numéro, le domaine en casse de titre", () => {
+		expect(d).toEqual({ etat: "2. LA HOUSSAYE/Immobilier/Rose de France/_État.md", nom: "Rose de France", chemin: "La Houssaye › Immobilier" });
+		expect(destination("1. LE MÉTIER/1. Runes de Chêne/_État.md")).toMatchObject({ nom: "Runes de Chêne", chemin: "Le Métier" });
+	});
+	it("filtre sans accents ni casse, le nom qui commence par la recherche d'abord", () => {
+		const toutes = [destination("1. LE MÉTIER/2. Fellowship/_État.md"), d, destination("1. LE MÉTIER/1. Runes de Chêne/_État.md")];
+		expect(filtrer(toutes, "ROSE").map((x) => x.nom)).toEqual(["Rose de France"]);
+		expect(filtrer(toutes, "chene").map((x) => x.nom)).toEqual(["Runes de Chêne"]);
+		expect(filtrer(toutes, "metier").map((x) => x.nom)).toEqual(["Fellowship", "Runes de Chêne"]);
+		expect(filtrer(toutes, "r").map((x) => x.nom)).toEqual(["Rose de France", "Runes de Chêne", "Fellowship"]);
 	});
 });

@@ -250,6 +250,16 @@
 }
 .accueil-tab-souvenir svg { width: 14px; height: 14px; }
 .accueil .accueil-tab-souvenir:hover { color: var(--accueil-red); border-color: var(--accueil-red); }
+/* « + Tâche » se colle à droite, juste avant « + Souvenir ». */
+.accueil .accueil-tab-tache + .accueil-tab-souvenir { margin-left: 10px; }
+
+/* La fenêtre Une tâche */
+.accueil-destinations { display: flex; flex-direction: column; gap: 2px; margin-top: -12px; }
+.accueil-destination { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: var(--text-muted); }
+.accueil-destination .accueil-muted { font-size: 13px; color: var(--text-faint); }
+.accueil-destination.is-active, .accueil-destination:hover { background: var(--background-secondary); color: var(--text-normal); }
+.accueil-destinations:empty { display: none; }
+.accueil-tache-champ { width: 100%; }
 
 /* La fenêtre Souvenir */
 .accueil-souvenir .modal-content { display: flex; flex-direction: column; gap: 20px; }

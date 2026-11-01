@@ -214,3 +214,27 @@ function roman(n: number): string {
 	for (const [v, s] of table) while (n >= v) { out += s; n -= v; }
 	return out;
 }
+
+/** Où écrire une tâche, vu par la fenêtre « Une tâche » : le dossier du _État.md et son chemin lisible. */
+export interface Destination {
+	etat: string;
+	nom: string;
+	chemin: string;
+}
+
+/** « 2. LA HOUSSAYE/Immobilier/Rose de France/_État.md » → Rose de France, dans « La Houssaye › Immobilier ». */
+export function destination(etat: string): Destination {
+	const dossiers = etat.split("/").slice(0, -1).map((d) => d.replace(/^\d+\.\s*/, ""));
+	const lisible = (d: string, i: number) => (i === 0 && d === d.toLocaleUpperCase("fr") ? titleCase(d) : d);
+	const noms = dossiers.map(lisible);
+	return { etat, nom: noms.pop() ?? "Accueil", chemin: noms.join(" › ") };
+}
+
+/** Les destinations dont le nom ou le chemin contient la recherche, sans tenir compte des accents ni de la casse. */
+export function filtrer(destinations: Destination[], recherche: string): Destination[] {
+	const plat = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("fr");
+	const q = plat(recherche.trim());
+	return destinations
+		.filter((d) => plat(`${d.nom} ${d.chemin}`).includes(q))
+		.sort((a, b) => Number(!plat(a.nom).startsWith(q)) - Number(!plat(b.nom).startsWith(q)) || compare(a.nom, b.nom));
+}

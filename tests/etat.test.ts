@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkTask, extractTasks, taskLabel } from "../src/etat";
+import { addTask, checkTask, extractTasks, taskLabel } from "../src/etat";
 
 describe("extractTasks", () => {
 	it("prend les cases non cochées de la section, dans l'ordre, jusqu'au ## suivant", () => {
@@ -31,4 +31,19 @@ describe("checkTask", () => {
 
 describe("taskLabel", () => {
 	it("retire le gras", () => expect(taskLabel("**Finir** l'électrique")).toBe("Finir l'électrique"));
+});
+
+describe("addTask", () => {
+	it("ajoute en fin du paquet de cases, avant le détail", () => {
+		expect(addTask("## Prochaine action\n\n- [ ] Priorité\n- [x] Fait\n\t- sous-ligne\n\nDétail.\n## Tranché\n", "Nouvelle"))
+			.toBe("## Prochaine action\n\n- [ ] Priorité\n- [x] Fait\n\t- sous-ligne\n- [ ] Nouvelle\n\nDétail.\n## Tranché\n");
+	});
+	it("sans case, se place sous le titre ; la priorité reste la première", () => {
+		const md = addTask("# X\n## Prochaine action\n\n## Tranché\n", "  Payer les charges ");
+		expect(md).toBe("# X\n## Prochaine action\n\n- [ ] Payer les charges\n\n## Tranché\n");
+		expect(extractTasks(addTask(md, "Ensuite"))).toEqual(["Payer les charges", "Ensuite"]);
+	});
+	it("crée la section si elle manque et garde les fins de ligne Windows", () => {
+		expect(addTask("# X\r\nbla\r\n\r\n", "Ça")).toBe("# X\r\nbla\r\n\r\n## Prochaine action\r\n\r\n- [ ] Ça\r\n");
+	});
 });
