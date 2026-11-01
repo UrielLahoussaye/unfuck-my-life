@@ -239,7 +239,7 @@
 	align-items: center;
 	gap: 8px;
 	height: auto;
-	margin: 0 0 8px auto;
+	margin: 0 0 16px auto;
 	padding: 6px 16px;
 	border: 1px solid var(--accueil-muted);
 	border-radius: 999px;
