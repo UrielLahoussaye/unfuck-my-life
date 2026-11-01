@@ -146,16 +146,20 @@ export class AccueilView extends ItemView {
 		card.createDiv("accueil-grow");
 		card.createDiv({ cls: "accueil-card-title", text: m.titre });
 		if (m.accroche) card.createDiv({ cls: "accueil-accroche", text: m.accroche });
-		if (m.paquet || m.sousProjets.length) {
-			const act = card.createDiv("accueil-action");
-			if (m.paquet) this.tache(act, m.paquet, "accueil-action-main");
-			for (const sp of m.sousProjets) this.tache(act, sp, "accueil-action-sub", `${sp.titre}  —  `);
-			if (m.sousProjetsEnPlus) act.createDiv({ cls: "accueil-action-sub", text: `+${m.sousProjetsEnPlus} sous-projets` });
-		}
+		this.taches(card, m);
 		card.addEventListener("click", () => {
 			this.openPath(`${m.path}/_État.md`);
 			this.reveal(m.path);
 		});
+	}
+
+	/** Le paquet du dossier puis une ligne par sous-dossier : commun aux cartes du Métier et aux colonnes des Domaines. */
+	private taches(parent: HTMLElement, d: Pick<Metier, "paquet" | "sousProjets" | "sousProjetsEnPlus">) {
+		if (!d.paquet && !d.sousProjets.length) return;
+		const act = parent.createDiv("accueil-action");
+		if (d.paquet) this.tache(act, d.paquet, "accueil-action-main");
+		for (const sp of d.sousProjets) this.tache(act, sp, "accueil-action-sub", `${sp.titre}  —  `);
+		if (d.sousProjetsEnPlus) act.createDiv({ cls: "accueil-action-sub", text: `+${d.sousProjetsEnPlus} sous-projets` });
 	}
 
 	/** Une seule tâche du paquet est visible : la priorité, ou celle tirée au mélange aujourd'hui. */
@@ -198,6 +202,7 @@ export class AccueilView extends ItemView {
 				const more = pills.createDiv({ cls: "accueil-pill is-more", text: `+${d.enPlus}` });
 				more.addEventListener("click", () => this.reveal(d.path));
 			}
+			this.taches(col, d);
 		}
 	}
 

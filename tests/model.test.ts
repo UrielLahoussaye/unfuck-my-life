@@ -101,6 +101,18 @@ describe("buildHome — Les Domaines", () => {
 		const home = buildHome(vault(), { ...NONE, masques: ["2. LA HOUSSAYE/JCE"], quotidien: "2. LA HOUSSAYE/Immobilier" });
 		expect(home.domaines[0].liens.map((l) => l.label)).toEqual(["Carte", "💠 Mon Scénario"]);
 	});
+	it("montre les tâches de ses sous-dossiers, même enfouis, comme les sous-projets du Métier", () => {
+		const bien = (nom: string, action: string) => dir(`2. X/Immobilier/${nom}`, [], etat(action));
+		const root = dir("", [dir("2. X", [dir("2. X/Immobilier", [bien("Le Tibère", "- [ ] Relancer"), bien("Avenue Gravier", "- [x] Fait"), bien("Rose de France", "- [ ] Payer les charges")])])]);
+		const [x] = buildHome(root, NONE).domaines;
+		expect(x.paquet).toBeUndefined();
+		expect(x.sousProjets.map((sp) => [sp.titre, sp.tasks])).toEqual([
+			["Le Tibère", ["Relancer"]],
+			["Rose de France", ["Payer les charges"]],
+		]);
+		expect(x.sousProjets[1].etat).toBe("2. X/Immobilier/Rose de France/_État.md");
+		expect(x.sousProjetsEnPlus).toBe(0);
+	});
 	it("masque aussi un domaine entier", () => {
 		const home = buildHome(vault(), { ...NONE, masques: ["4. L'ŒUVRE"] });
 		expect(home.domaines.map((d) => d.titre)).not.toContain("L'Œuvre");

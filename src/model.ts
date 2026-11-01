@@ -62,6 +62,9 @@ export interface Domaine {
 	path: string;
 	liens: Link[];
 	enPlus: number;
+	paquet?: Paquet;
+	sousProjets: (Paquet & { titre: string })[];
+	sousProjetsEnPlus: number;
 }
 
 export interface Quotidien {
@@ -92,12 +95,7 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 
 	return {
 		metiers: metiers.map(({ num, rest, node }) => {
-			const subs = nearestEtats(node)
-				.flatMap((s) => {
-					const p = paquet(s);
-					return p ? [{ titre: s.name, ...p }] : [];
-				})
-				.sort((a, b) => compare(a.titre, b.titre));
+			const subs = sousProjets(node);
 			return {
 				numero: num,
 				romain: roman(num),
@@ -114,6 +112,7 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 			.filter((n) => n.num !== CAPTURE && n.num !== METIER_ROOT && !hidden(n.node.path))
 			.map(({ num, rest, node }) => {
 				const liens = links(node, hidden);
+				const subs = sousProjets(node);
 				return {
 					numero: String(num).padStart(2, "0"),
 					titre: titleCase(rest),
@@ -122,6 +121,9 @@ export function buildHome(root: Node, settings: Settings): HomeModel {
 					path: node.path,
 					liens: liens.slice(0, MAX_LIENS),
 					enPlus: Math.max(liens.length - MAX_LIENS, 0),
+					paquet: paquet(node),
+					sousProjets: subs.slice(0, MAX_SOUS_PROJETS),
+					sousProjetsEnPlus: Math.max(subs.length - MAX_SOUS_PROJETS, 0),
 				};
 			}),
 		quotidien: quotidien(root, settings, hidden),
@@ -148,6 +150,16 @@ function links(node: Node, hidden: (p: string) => boolean): Link[] {
 function paquet(node: Node): Paquet | undefined {
 	const tasks = node.etat ? extractTasks(node.etat) : [];
 	return tasks.length ? { etat: `${node.path}/_État.md`, tasks } : undefined;
+}
+
+/** Les paquets des sous-dossiers, par ordre alphabétique : une ligne « Nom — tâche » sur la carte. */
+function sousProjets(node: Node): (Paquet & { titre: string })[] {
+	return nearestEtats(node)
+		.flatMap((s) => {
+			const p = paquet(s);
+			return p ? [{ titre: s.name, ...p }] : [];
+		})
+		.sort((a, b) => compare(a.titre, b.titre));
 }
 
 /** Les _État.md les plus proches sous ce dossier, sans descendre sous un dossier qui en a un. */
