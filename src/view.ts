@@ -185,7 +185,7 @@ export class AccueilView extends ItemView {
 
 	private async cocher(path: string, task: string) {
 		const file = this.app.vault.getAbstractFileByPath(path);
-		if (file instanceof TFile) await this.app.vault.process(file, (md) => checkTask(md, task));
+		if (file instanceof TFile) await this.app.vault.process(file, (md) => checkTask(md, task, aujourdhui()));
 	}
 
 	private domaines(s: HTMLElement, domaines: Domaine[]) {

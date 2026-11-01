@@ -57,8 +57,9 @@ describe("parsePlan", () => {
 
 describe("basculer", () => {
 	it("coche puis décoche la ligne, sans toucher au reste", () => {
-		const cochee = basculer(note, 12, "Le dépliant arrive");
-		expect(cochee.split("\n")[12]).toBe("- [x] Le dépliant arrive #jalon 📅 2026-11-06");
+		const cochee = basculer(note, 12, "Le dépliant arrive", "2026-11-01");
+		expect(cochee.split("\n")[12]).toBe("- [x] Le dépliant arrive #jalon 📅 2026-11-06 ✅ 2026-11-01");
+		expect(parsePlan(cochee, "p.md").jalons.find((j) => j.ligne === 12)).toMatchObject({ texte: "Le dépliant arrive", echeance: "2026-11-06", fait: true });
 		expect(basculer(cochee, 12, "Le dépliant arrive")).toBe(note);
 	});
 	it("ne touche à rien si la ligne a changé de texte", () => {

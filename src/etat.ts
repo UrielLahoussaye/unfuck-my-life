@@ -16,14 +16,29 @@ export function extractTasks(markdown: string): string[] {
 	return tasks;
 }
 
+/** La date de fin, au format du plugin Tasks : ` ✅ 2026-11-01`. */
+export const FAIT_LE = /\s*✅\s*\d{4}-\d{2}-\d{2}/;
+
+/** Coche une ligne de case et y écrit la date du jour (`jour` en AAAA-MM-JJ), comme le plugin Tasks. */
+export function cocher(ligne: string, jour: string): string {
+	const fin = ligne.endsWith("\r") ? "\r" : "";
+	return `${ligne.trimEnd().replace(/\[ \]/, "[x]").replace(FAIT_LE, "")} ✅ ${jour}${fin}`;
+}
+
+/** Décoche une ligne de case et retire sa date de fin. */
+export function decocher(ligne: string): string {
+	const fin = ligne.endsWith("\r") ? "\r" : "";
+	return ligne.trimEnd().replace(/\[[xX]\]/, "[ ]").replace(FAIT_LE, "") + fin;
+}
+
 /** Coche la tâche `task` dans la section « ## Prochaine action ». Rend le texte inchangé si elle n'y est plus. */
-export function checkTask(markdown: string, task: string): string {
+export function checkTask(markdown: string, task: string, jour: string): string {
 	const lines = markdown.split("\n");
 	const start = lines.findIndex((l) => SECTION.test(l.trim()));
 	if (start < 0) return markdown;
 	for (let i = start + 1; i < lines.length && !/^##\s/.test(lines[i]); i++) {
 		if (lines[i].trimEnd().match(OPEN_TASK)?.[1].trim() === task) {
-			lines[i] = lines[i].replace("[ ]", "[x]");
+			lines[i] = cocher(lines[i], jour);
 			return lines.join("\n");
 		}
 	}

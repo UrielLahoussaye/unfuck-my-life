@@ -6,6 +6,8 @@
  * La timeline lit ces lignes telles quelles et ne réécrit que la case qu'on coche.
  */
 
+import { cocher, decocher, FAIT_LE } from "./etat";
+
 export interface Ligne {
 	/** Le texte affiché, sans dates ni étiquette. */
 	texte: string;
@@ -99,16 +101,16 @@ export function parsePlan(md: string, path: string): Plan {
 }
 
 function lireLigne(contenu: string, ligne: number, fait: boolean): Ligne {
-	const texte = contenu.replace(ECHEANCE, "").replace(DEBUT, "").replace(JALON, " ").replace(INLINE, " ").replace(/\s+/g, " ").trim();
+	const texte = contenu.replace(FAIT_LE, "").replace(ECHEANCE, "").replace(DEBUT, "").replace(JALON, " ").replace(INLINE, " ").replace(/\s+/g, " ").trim();
 	return { texte, ligne, fait, debut: contenu.match(DEBUT)?.[1], echeance: contenu.match(ECHEANCE)?.[1], jalon: JALON.test(contenu) };
 }
 
-/** Coche ou décoche la case de la ligne `ligne`, seulement si elle porte toujours ce texte. Sinon, la note reste telle quelle. */
-export function basculer(md: string, ligne: number, texte: string): string {
+/** Coche (avec la date du jour, ✅) ou décoche la case de la ligne `ligne`, seulement si elle porte toujours ce texte. Sinon, la note reste telle quelle. */
+export function basculer(md: string, ligne: number, texte: string, jour = aujourdhui()): string {
 	const lignes = md.split("\n");
 	const c = lignes[ligne]?.trimEnd().match(CASE);
 	if (!c || lireLigne(c[2], ligne, false).texte !== texte) return md;
-	lignes[ligne] = lignes[ligne].replace(/\[([ xX])\]/, c[1] === " " ? "[x]" : "[ ]");
+	lignes[ligne] = c[1] === " " ? cocher(lignes[ligne], jour) : decocher(lignes[ligne]);
 	return lignes.join("\n");
 }
 
