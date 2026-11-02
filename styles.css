@@ -94,7 +94,8 @@
 	cursor: pointer;
 	transition: border-color 0.15s ease, transform 0.15s ease;
 }
-.accueil-card:hover { border-color: var(--accueil-red); transform: translateY(-2px); }
+/* Survol réservé à la souris : au doigt, il s’allume au toucher et freine le défilement. */
+@media (hover: hover) { .accueil-card:hover { border-color: var(--accueil-red); transform: translateY(-2px); } }
 .accueil-card.is-big {
 	min-height: 456px;
 	background: linear-gradient(160deg, color-mix(in srgb, var(--accueil-red) 6%, var(--accueil-card)), color-mix(in srgb, var(--accueil-red) 22%, var(--accueil-card)));
@@ -304,7 +305,7 @@
 	line-height: 1.35;
 	white-space: pre-line;
 }
-.accueil-wall-item:hover { outline-color: var(--accueil-red); }
+@media (hover: hover) { .accueil-wall-item:hover { outline-color: var(--accueil-red); } }
 .accueil-wall-empty { margin-bottom: 16px; }
 .accueil-wall-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 24px; }
 .accueil-wall-open { display: flex; align-items: center; gap: 10px; margin-left: auto; font-size: 12px; color: var(--accueil-muted); cursor: pointer; }
@@ -398,7 +399,7 @@
 	cursor: pointer;
 	transition: border-color 0.12s ease;
 }
-.accueil-objectif:hover { border-color: var(--accueil-red); }
+@media (hover: hover) { .accueil-objectif:hover { border-color: var(--accueil-red); } }
 .accueil .accueil-objectif-nom { font-size: 12px; color: var(--accueil-muted); padding-right: 64px; }
 .accueil-objectif-cible { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 2px; }
 .accueil-objectif-valeur { font-family: var(--accueil-titre); font-size: 52px; line-height: 1; letter-spacing: -0.03em; white-space: nowrap; }
@@ -498,7 +499,7 @@
 .accueil .accueil-obj-projet { font-size: 12px; letter-spacing: 0.18em; cursor: pointer; }
 .accueil-obj-periode { margin-left: auto; font-size: 13px; color: var(--accueil-muted); }
 .accueil-obj-ligne { display: grid; grid-template-columns: 200px 196px 1fr 72px; align-items: center; gap: 20px; padding: 14px 24px; border-top: 1px solid color-mix(in srgb, var(--accueil-ink) 6%, transparent); cursor: pointer; transition: background 0.12s ease; }
-.accueil-obj-ligne:hover { background: color-mix(in srgb, var(--accueil-ink) 3%, transparent); }
+@media (hover: hover) { .accueil-obj-ligne:hover { background: color-mix(in srgb, var(--accueil-ink) 3%, transparent); } }
 .accueil-obj-ligne.is-done { opacity: 0.5; }
 .accueil-obj-nom { font-size: 14px; opacity: 0.85; }
 .accueil-obj-valeur { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
