@@ -49,12 +49,18 @@ export class AccueilView extends ItemView implements Hote {
 		await this.render();
 	}
 
+	/** Le numéro du dernier dessin lancé. */
+	private dessin = 0;
+
+	/**
+	 * Dessine la page à part, puis la pose d'un coup — si aucun dessin plus récent n'a été lancé entre-temps.
+	 * Sans ça, deux dessins qui se chevauchent (une mesure qui revient, Sync qui modifie un fichier)
+	 * empilaient chacun leur contenu : la page se répétait.
+	 */
 	async render() {
 		const settings = this.plugin.settings;
-		const root = this.contentEl;
-		const scroll = root.scrollTop;
-		root.empty();
-		root.addClass("accueil");
+		const numero = ++this.dessin;
+		const root = createDiv();
 		this.tabs(root);
 		if (this.page === "vision") {
 			this.header(root, "Ma Vision");
@@ -66,7 +72,11 @@ export class AccueilView extends ItemView implements Hote {
 		} else {
 			this.accueil.rendre(root, buildHome(await toTree(this.app, settings.masques), settings));
 		}
-		root.scrollTop = scroll;
+		if (numero !== this.dessin) return;
+		const scroll = this.contentEl.scrollTop;
+		this.contentEl.addClass("accueil");
+		this.contentEl.replaceChildren(...root.childNodes);
+		this.contentEl.scrollTop = scroll;
 	}
 
 	private tabs(root: HTMLElement) {
