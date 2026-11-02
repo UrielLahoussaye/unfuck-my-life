@@ -516,12 +516,19 @@
 .accueil-obj-point { width: 7px; height: 7px; border-radius: 50%; background: var(--accueil-muted); opacity: 0.6; }
 .accueil-obj-point.is-dessus { background: var(--accueil-green); opacity: 0.85; }
 .accueil-obj-point.is-dessous { background: var(--accueil-red); opacity: 0.85; }
-/* Deux blocs côte à côte tant que la page le permet (iPad paysage compris), un seul en dessous. */
+/* Un seul projet : son bloc prend toute la largeur et ses objectifs se rangent sur deux colonnes. */
+.accueil-obj-groupe:only-child { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; }
+.accueil-obj-groupe:only-child > .accueil-obj-bandeau { grid-column: 1 / -1; }
+/* Deux colonnes tant que la page le permet (iPad paysage compris), une seule en dessous. */
 @container (max-width: 760px) {
-	.accueil-obj-groupes { grid-template-columns: 1fr; }
+	.accueil-obj-groupes, .accueil-obj-groupe:only-child { grid-template-columns: 1fr; }
 }
-/* Un bloc étroit : la barre passe sous le nom et le chiffre. */
+/* Une ligne étroite (bloc étroit, ou demi-bloc d'un projet seul) : la barre passe sous le nom et le chiffre. */
 @container (max-width: 600px) {
 	.accueil-obj-ligne { grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 16px; }
 	.accueil-obj-barre { grid-column: 1 / -1; }
+}
+@container (max-width: 1200px) {
+	.accueil-obj-groupe:only-child .accueil-obj-ligne { grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 16px; }
+	.accueil-obj-groupe:only-child .accueil-obj-barre { grid-column: 1 / -1; }
 }
