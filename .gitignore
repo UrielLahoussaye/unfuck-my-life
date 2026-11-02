@@ -1,3 +1,7 @@
 .superpowers/
 node_modules/
 main.js
+.graphify_*
+graphify-out/cost.json
+graphify-out/.needs_update
+graphify-out/cache/
