@@ -74,8 +74,8 @@
 .accueil-section-head { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
 .accueil-rule { flex: 1; height: 1px; background: var(--accueil-line); }
 
-/* Le Métier — bento */
-.accueil-bento { display: grid; grid-template-columns: 600fr 664fr; gap: 16px; }
+/* Le Métier — bento. minmax(0, …) : une tâche longue (nowrap) ne doit pas élargir sa colonne au point d’écraser l’autre. */
+.accueil-bento { display: grid; grid-template-columns: minmax(0, 600fr) minmax(0, 664fr); gap: 16px; }
 .accueil-bento.is-single { grid-template-columns: 1fr; }
 .accueil-bento-col { display: flex; flex-direction: column; gap: 16px; }
 .accueil-smalls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -133,7 +133,7 @@
 .accueil-action { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; font-size: 14px; line-height: 1.7; }
 .accueil-tache { display: flex; align-items: center; gap: 14px; }
 .accueil-tache-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.accueil .accueil-tache-btn {
+.accueil button.accueil-tache-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -234,7 +234,7 @@
 .accueil-tab { padding-bottom: 10px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--accueil-muted); cursor: pointer; }
 .accueil-tab:hover { color: var(--accueil-ink); }
 .accueil-tab.is-active { color: var(--accueil-ink); border-bottom-color: var(--accueil-red); cursor: default; }
-.accueil .accueil-tab-souvenir {
+.accueil button.accueil-tab-souvenir {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -430,7 +430,7 @@
 .accueil-frise-label { display: flex; align-items: center; gap: 10px; padding-right: 16px; font-size: 15px; line-height: 1.25; }
 .accueil-frise-label > span { cursor: pointer; }
 .accueil-frise-label > span:hover { color: var(--accueil-red); }
-.accueil .accueil-frise-case {
+.accueil button.accueil-frise-case {
 	flex: none;
 	display: inline-flex;
 	align-items: center;
