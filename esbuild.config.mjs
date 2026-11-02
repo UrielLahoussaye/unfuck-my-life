@@ -28,6 +28,8 @@ const ctx = await esbuild.context({
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
+	// shortcut: en mode watch, l’heure est celle du lancement, pas du dernier rebuild ; `npm run build` est exact.
+	define: { BUILD: JSON.stringify(new Date().toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })) },
 	plugins: [deploy],
 });
 

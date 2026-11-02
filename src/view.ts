@@ -10,6 +10,9 @@ import { OngletPlan } from "./onglets/plan";
 import { OngletVision } from "./onglets/vision";
 import type AccueilPlugin from "./main";
 
+/** L’heure du build, posée par esbuild : dit sur l’iPad si Sync a bien apporté la dernière version. */
+declare const BUILD: string;
+
 export const VIEW_TYPE_ACCUEIL = "accueil-view";
 
 /** La vue : la barre d'onglets, puis l'onglet choisi. Chaque onglet vit dans `onglets/`, avec son état. */
@@ -26,16 +29,22 @@ export class AccueilView extends ItemView implements Hote {
 
 	getViewType() {
 		return VIEW_TYPE_ACCUEIL;
-	}
-
+	}
+
+
+
 	getDisplayText() {
 		return "Accueil";
-	}
-
+	}
+
+
+
 	getIcon() {
 		return "home";
-	}
-
+	}
+
+
+
 	async onOpen() {
 		await this.render();
 	}
@@ -79,13 +88,15 @@ export class AccueilView extends ItemView implements Hote {
 		const add = bar.createEl("button", { cls: "accueil-tab-souvenir accueil-caps", text: "Souvenir" });
 		setIcon(add.createSpan({ prepend: true }), "plus");
 		add.addEventListener("click", () => new SouvenirModal(this.app).open());
-	}
-
+	}
+
+
+
 	header(root: HTMLElement, titre: string, accroche?: string) {
 		const head = root.createDiv("accueil-head");
 		const left = head.createDiv();
 		const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-		left.createDiv({ cls: "accueil-date", text: date.toLocaleUpperCase("fr") });
+		left.createDiv({ cls: "accueil-date", text: `${date.toLocaleUpperCase("fr")} · BUILD ${BUILD}` });
 		const title = left.createEl("h1", { cls: "accueil-title", text: titre });
 		title.createSpan({ cls: "accueil-red", text: "." });
 		if (accroche) left.createDiv({ cls: "accueil-accroche accueil-head-accroche", text: accroche });
@@ -93,8 +104,10 @@ export class AccueilView extends ItemView implements Hote {
 		search.createSpan({ text: "Où veux-tu aller ?" });
 		search.createSpan({ cls: "accueil-kbd", text: "Ctrl O" });
 		search.addEventListener("click", () => (this.app as any).commands.executeCommandById("switcher:open"));
-	}
-
+	}
+
+
+
 	section(root: HTMLElement, n: number, label: string, sub: string): HTMLElement {
 		const s = root.createDiv("accueil-section");
 		const h = s.createDiv("accueil-section-head");
@@ -103,8 +116,10 @@ export class AccueilView extends ItemView implements Hote {
 		h.createDiv("accueil-rule");
 		h.createSpan({ cls: "accueil-muted", text: sub });
 		return s;
-	}
-
+	}
+
+
+
 	/** Pose l'image de fond, fondue vers la gauche. Renvoie false si l'image n'existe pas. */
 	background(el: HTMLElement, path?: string): boolean {
 		const file = path ? this.app.vault.getAbstractFileByPath(path) : null;
@@ -112,13 +127,17 @@ export class AccueilView extends ItemView implements Hote {
 		el.addClass("has-image");
 		el.createDiv("accueil-bg").style.backgroundImage = `url("${this.app.vault.getResourcePath(file)}")`;
 		return true;
-	}
-
+	}
+
+
+
 	pill(parent: HTMLElement, l: Link) {
 		const pill = parent.createDiv({ cls: "accueil-pill", text: l.label });
 		pill.addEventListener("click", () => (l.kind === "folder" ? this.openFolder(l.path) : this.openPath(l.path)));
-	}
-
+	}
+
+
+
 	/** Dossier : son _État.md, sinon la note qui porte son nom (emoji ignoré), sinon l'explorateur. */
 	private openFolder(path: string) {
 		const folder = this.app.vault.getAbstractFileByPath(path);
@@ -129,14 +148,18 @@ export class AccueilView extends ItemView implements Hote {
 			folder.children.find((c): c is TFile => c instanceof TFile && c.extension === "md" && splitEmoji(c.basename).label === name);
 		if (target) this.app.workspace.getLeaf(false).openFile(target);
 		else this.reveal(path);
-	}
-
+	}
+
+
+
 	openPath(path: string, fallbackFolder?: string) {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
 		else if (fallbackFolder) this.reveal(fallbackFolder);
-	}
-
+	}
+
+
+
 	/** Montre le dossier dans l'explorateur de gauche, panneau ouvert et dossier déplié. */
 	reveal(path: string) {
 		const folder = this.app.vault.getAbstractFileByPath(path);
