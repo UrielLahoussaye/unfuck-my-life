@@ -491,8 +491,9 @@
 .accueil-cliquable { cursor: pointer; }
 .accueil-objectifs-chevron { display: inline-flex; color: var(--accueil-muted); }
 .accueil-objectifs-chevron svg { width: 14px; height: 14px; }
-.accueil-obj-groupes { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 32px; align-items: start; }
-.accueil-obj-groupe { border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--accueil-ink) 3.5%, transparent); }
+.accueil-obj-groupes { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+/* Le bloc est son propre conteneur : ses lignes se resserrent selon sa largeur à lui, pas celle de la page. */
+.accueil-obj-groupe { container-type: inline-size; border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--accueil-ink) 3.5%, transparent); }
 .accueil-obj-bandeau { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 16px 24px; }
 .accueil-obj-bandeau > :not(.accueil-bg) { position: relative; }
 .accueil-obj-bandeau .accueil-bg { opacity: 0.45; }
@@ -515,8 +516,12 @@
 .accueil-obj-point { width: 7px; height: 7px; border-radius: 50%; background: var(--accueil-muted); opacity: 0.6; }
 .accueil-obj-point.is-dessus { background: var(--accueil-green); opacity: 0.85; }
 .accueil-obj-point.is-dessous { background: var(--accueil-red); opacity: 0.85; }
-@container (max-width: 640px) {
+/* Deux blocs côte à côte tant que la page le permet (iPad paysage compris), un seul en dessous. */
+@container (max-width: 760px) {
 	.accueil-obj-groupes { grid-template-columns: 1fr; }
+}
+/* Un bloc étroit : la barre passe sous le nom et le chiffre. */
+@container (max-width: 600px) {
 	.accueil-obj-ligne { grid-template-columns: 1fr auto; gap: 6px 12px; padding: 12px 16px; }
 	.accueil-obj-barre { grid-column: 1 / -1; }
 }
