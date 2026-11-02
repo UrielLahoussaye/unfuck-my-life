@@ -121,6 +121,52 @@ export function renommer(md: string, ancien: string, nouveau: string): string {
 	return md.replace(/\[mesure::([^\]]*)\]/g, (_, expr: string) => `[mesure::${expr.replace(terme, `$1${nouveau}.`)}]`);
 }
 
+/** Un jalon à écrire, tel que la fenêtre « + Jalon » le saisit. */
+export interface NouveauJalon {
+	texte: string;
+	echeance: string;
+	debut?: string;
+	jalon: boolean;
+}
+
+/**
+ * Écrit la case `- [ ] texte #jalon 🛫 début 📅 échéance` dans `## Jalons`, sous le `### Mois` de son échéance,
+ * après les cases qui tombent avant elle. Un mois sans sous-titre en reçoit un, rangé dans l'ordre des mois ;
+ * une note sans `## Jalons` reçoit la section à la fin.
+ */
+export function ajouterJalon(md: string, j: NouveauJalon): string {
+	const ym = j.echeance.slice(0, 7);
+	const titreDuMois = `### ${nomMois(ym).replace(/^./, (c) => c.toUpperCase())}`;
+	const ligne = `- [ ] ${j.texte.trim()}${j.jalon ? " #jalon" : ""}${j.debut ? ` 🛫 ${j.debut}` : ""} 📅 ${j.echeance}`;
+	const lignes = md.split("\n");
+	const section = lignes.findIndex((l) => /^##\s+jalon/i.test(l));
+	if (section < 0) return `${md.replace(/\n*$/, "")}\n\n## Jalons\n\n${titreDuMois}\n${ligne}\n`;
+
+	const suite = lignes.findIndex((l, i) => i > section && /^##\s/.test(l));
+	const fin = suite < 0 ? lignes.length : suite;
+	// Un sous-titre « ### Novembre — armer Noël » se lit dans la période du plan (ou l'année de l'échéance).
+	const tete = entete(md);
+	const premier = champ(tete, "debut")?.slice(0, 7) ?? `${ym.slice(0, 4)}-01`;
+	const dernier = champ(tete, "fin")?.slice(0, 7) ?? `${ym.slice(0, 4)}-12`;
+	const moisDuTitre = (l: string) => moisDuNom(l.match(/^###\s+([^—–-]+)/)?.[1] ?? "", premier, dernier);
+	const titres = [...lignes.keys()].filter((i) => i > section && i < fin && /^###\s/.test(lignes[i]));
+
+	const titre = titres.find((i) => moisDuTitre(lignes[i]) === ym);
+	if (titre !== undefined) {
+		let ou = titre + 1;
+		for (let i = titre + 1; i < fin && !lignes[i].startsWith("#"); i++) {
+			const date = lignes[i].match(ECHEANCE)?.[1];
+			if (CASE.test(lignes[i]) && (!date || date <= j.echeance)) ou = i + 1;
+		}
+		lignes.splice(ou, 0, ligne);
+	} else {
+		let ou = titres.find((i) => (moisDuTitre(lignes[i]) ?? "") > ym) ?? fin;
+		while (ou > section + 1 && lignes[ou - 1].trim() === "") ou--;
+		lignes.splice(ou, 0, "", titreDuMois, ligne);
+	}
+	return lignes.join("\n");
+}
+
 /** « 1. LE MÉTIER/1. Runes de Chêne/Plan.md » → « Runes de Chêne » : le dossier de la note, sans son numéro. */
 export function projetDe(path: string): string {
 	const dossiers = path.split("/").slice(0, -1);
@@ -189,6 +235,8 @@ function champ(tete: string, nom: string): string | undefined {
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+/** « 2026-12 » → « décembre ». */
+const nomMois = (ym: string) => new Date(ym + "-01T00:00:00Z").toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" });
 const jours = (a: string, b: string) => (Date.parse(b) - Date.parse(a)) / 864e5;
 const lendemain = (d: string) => iso(new Date(Date.parse(d) + 864e5));
 
@@ -247,7 +295,6 @@ export interface Palier {
  */
 export function palier(o: Objectif, plan: Plan, jour: string): Palier | null {
 	if (!o.cible) return null;
-	const nomMois = (ym: string) => new Date(ym + "-01T00:00:00Z").toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" });
 	const debut = (plan.debut ?? jour).slice(0, 7);
 	const fin = (o.echeance ?? plan.fin ?? jour).slice(0, 7);
 	const ici = jour.slice(0, 7);

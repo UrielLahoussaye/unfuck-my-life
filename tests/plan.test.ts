@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe, renommer, ecart } from "../src/plan";
+import { ajouterJalon, aujourdhui, basculer, bornes, chiffre, commeCible, dateCourte, moisDuNom, nombre, palier, periodeDe, estPlan, fenetre, moisDe, parsePlan, position, positionFin, projetDe, renommer, ecart } from "../src/plan";
 
 const note = [
 	"---",
@@ -172,5 +172,39 @@ describe("ecart", () => {
 		expect(ecart(5000, 5000)).toEqual({ texte: "+0 %", dessus: true });
 		expect(ecart(11, 30)).toEqual({ texte: "−63 %", dessus: false });
 		expect(ecart(3, 0)).toBeNull();
+	});
+});
+
+describe("ajouterJalon", () => {
+	const plan = ["---", "type: plan", "debut: 2026-11-01", "fin: 2027-04-30", "---", "## Jalons", "", "### Novembre — armer Noël", "- [ ] A 📅 2026-11-06", "- [ ] C 📅 2026-11-20", "", "### Janvier — le bilan", "- [ ] J 📅 2027-01-15", "", "## Notes", "x"].join("\n");
+
+	it("range la case dans son mois, à sa date", () => {
+		const md = ajouterJalon(plan, { texte: "B", echeance: "2026-11-10", jalon: true });
+		expect(md.split("\n").slice(7, 11)).toEqual(["### Novembre — armer Noël", "- [ ] A 📅 2026-11-06", "- [ ] B #jalon 📅 2026-11-10", "- [ ] C 📅 2026-11-20"]);
+	});
+
+	it("passe en tête du mois quand elle est la plus tôt, et écrit le début", () => {
+		const md = ajouterJalon(plan, { texte: "Z", debut: "2026-11-01", echeance: "2026-11-02", jalon: false });
+		expect(md.split("\n")[8]).toBe("- [ ] Z 🛫 2026-11-01 📅 2026-11-02");
+	});
+
+	it("crée le sous-titre d'un mois absent, à sa place dans l'ordre", () => {
+		const md = ajouterJalon(plan, { texte: "D", echeance: "2026-12-10", jalon: false });
+		expect(md.split("\n").slice(10, 15)).toEqual(["", "### Décembre", "- [ ] D 📅 2026-12-10", "", "### Janvier — le bilan"]);
+	});
+
+	it("crée un mois après le dernier, avant la section suivante", () => {
+		const md = ajouterJalon(plan, { texte: "M", echeance: "2027-03-01", jalon: false });
+		expect(md.split("\n").slice(12, 18)).toEqual(["- [ ] J 📅 2027-01-15", "", "### Mars", "- [ ] M 📅 2027-03-01", "", "## Notes"]);
+	});
+
+	it("crée la section Jalons quand elle manque", () => {
+		const md = ajouterJalon("---\ntype: plan\n---\n## Objectifs\n", { texte: "X", echeance: "2026-11-02", jalon: false });
+		expect(md).toBe("---\ntype: plan\n---\n## Objectifs\n\n## Jalons\n\n### Novembre\n- [ ] X 📅 2026-11-02\n");
+	});
+
+	it("est relue par parsePlan", () => {
+		const j = parsePlan(ajouterJalon(plan, { texte: "B", debut: "2026-11-08", echeance: "2026-11-10", jalon: true }), "p.md").jalons.find((l) => l.texte === "B");
+		expect(j).toMatchObject({ debut: "2026-11-08", echeance: "2026-11-10", jalon: true });
 	});
 });
